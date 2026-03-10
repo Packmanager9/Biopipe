@@ -1,6 +1,6 @@
 # Genomopipe
 
-An end-to-end automated pipeline that takes an organism name and produces computationally designed protein structures — from raw genome fetching through annotation, backbone design, sequence design, and structure prediction.
+An end-to-end automated pipeline that takes an organism name and produces computationally designed protein structures taken from raw genome fetching through annotation, backbone design, sequence design, and structure prediction.
 
 ---
 
@@ -52,7 +52,7 @@ Organism Name
 - GPU recommended for ColabFold and RFdiffusion (falls back to CPU)
 - ~50–200 GB disk space depending on organism genome size
 
-### Software — Conda Environments
+### Software and Conda Environments
 
 Three Conda environments are required. They must be created before running the pipeline.
 
@@ -62,7 +62,7 @@ Three Conda environments are required. They must be created before running the p
 | `SE3nv` | RFdiffusion backbone design and ProteinMPNN sequence design |
 | `colabfold` | ColabFold structure prediction |
 
-#### `braker_env` — key packages
+#### `braker_env` has key packages
 ```bash
 conda create -n braker_env
 conda activate braker_env
@@ -72,7 +72,7 @@ mamba install -c bioconda -c conda-forge \
     python perl
 ```
 
-#### `SE3nv` — RFdiffusion environment
+#### `SE3nv` possible RFdiffusion environment
 ```bash
 conda env create -f ~/RFdiffusion/env/SE3nv.yml
 conda activate SE3nv
@@ -152,13 +152,13 @@ mkdir -p ~/models
 ### Examples
 
 ```bash
-# Prokaryote — minimal
+# Prokaryote call: minimal
 ./genome_to_design.sh "Escherichia coli" ./output
 
-# Eukaryote — with automatic RNA-Seq download for annotation hints
+# Eukaryote will attempt to run with automatic RNA-Seq download for annotation hints
 ./genome_to_design.sh "Taraxacum officinale" ./output true --auto_rnaseq
 
-# Eukaryote — with a pre-existing BAM file
+# Eukaryote run with a pre-existing BAM file
 ./genome_to_design.sh "Arabidopsis thaliana" ./output true --bam=/data/rnaseq.bam
 
 # Custom GeneMark path
@@ -176,7 +176,7 @@ mkdir -p ~/models
 The pipeline uses checkpoint files (`.step*.done` / `.step*.failed`) to support resuming interrupted runs. Re-running the same command will skip all steps that already completed successfully.
 
 ```bash
-# Resume an interrupted run — just re-run the original command:
+# Resume an interrupted run, just re-run the original command:
 ./genome_to_design.sh "Taraxacum officinale" ./output true --auto_rnaseq
 
 # Re-run a single specific step:
@@ -224,46 +224,46 @@ output/
 
 ---
 
-## Pipeline Steps — Detail
+## Pipeline Steps In Detail
 
-### Step 1 — Genome Fetch (`genome_fetch.sh`)
+### Step 1. Genome Fetch (`genome_fetch.sh`)
 Queries NCBI for the organism by name or TaxID, determines the relevant taxonomic group, and attempts to download the best available genome assembly in priority order:
 1. RefSeq reference assemblies
 2. Any RefSeq assembly
 3. Any GenBank assembly
 4. Falls back to fetching individual nucleotide sequences and clustering with `cd-hit-est`
 
-### Step 1b — FASTA Header Sanitization
+### Step 1b. FASTA Header Sanitization
 Replaces spaces and pipe characters in sequence headers with underscores to prevent downstream tool failures.
 
-### Step 2 — QC with BBTools
+### Step 2. QC with BBTools
 Runs `bbduk.sh` to trim adapter sequences. If this step fails or produces no output, the pipeline falls back to the raw (sanitized) genome.
 
-### Step 2b — Repeat Masking
+### Step 2b. Repeat Masking
 Runs `RepeatModeler` to build a de novo repeat library, then `RepeatMasker` to soft-mask the genome. Automatically skipped for genomes under 1 MB. Required for eukaryotes (`repeat_critical=true` when `is_eukaryote=true`).
 
-### Step 3 — Gene Annotation
+### Step 3. Gene Annotation
 - **Eukaryotes**: BRAKER (Augustus + GeneMark-ETP), optionally with RNA-Seq BAM hints (`--bam`) or automatically downloaded RNA-Seq (`--auto_rnaseq`). OrthoDB protein hints are automatically downloaded for the correct taxonomic group (fungi, viridiplantae, vertebrata, etc.).
 - **Prokaryotes**: Prokka.
 
 The `--auto_rnaseq` mode queries SRA via Entrez, downloads runs with `prefetch` + `fasterq-dump`, aligns with STAR, and merges BAMs with `samtools`.
 
-### Step 4 — Protein Extraction and Filtering
+### Step 4. Protein Extraction and Filtering
 Parses the annotated `.faa`, keeps only the longest isoform per gene, and filters out proteins shorter than 100 aa (200 aa for eukaryotes). Outputs `proteins.faa`.
 
-### Step 5 — RFdiffusion Backbone Design
+### Step 5. RFdiffusion Backbone Design
 Generates novel protein backbone structures. If a `colabfold_pre/` directory exists with pre-computed structures, the top-ranked structure is used as a motif for scaffolding. Otherwise runs unconditional de novo design.
 
-### Step 5b — ProteinMPNN Sequence Design
+### Step 5b. ProteinMPNN Sequence Design
 Designs amino acid sequences for each RFdiffusion backbone, producing 8 candidate sequences per backbone. Sequences are split into individual FASTA files for ColabFold input.
 
-### Step 6 — ColabFold Structure Prediction
+### Step 6. ColabFold Structure Prediction
 Predicts and relaxes the structure of each ProteinMPNN-designed sequence using ColabFold (AlphaFold2 backend), with 3 recycle passes.
 
-### Step 7 — BLAST Validation
+### Step 7. BLAST Validation
 Runs remote `blastp` against the NCBI `nr` database for each designed sequence to identify putative function by homology.
 
-### Step 8 — Rename Outputs
+### Step 8. Rename Outputs
 Renames ColabFold output files to include the putative function name derived from BLAST results, replacing the generic design ID with a human-readable label.
 
 ---
@@ -298,7 +298,7 @@ If you use Genomopipe in published work, please cite:
 }
 ```
 
-Genomopipe also depends on the following tools — please cite them accordingly:
+Genomopipe also depends on the following tools so please cite them accordingly:
 
 - **BRAKER**: Brůna et al. (2021). *NAR Genomics and Bioinformatics*, 3(1). https://doi.org/10.1093/nargab/lqaa108
 - **Augustus**: Stanke et al. (2008). *Nucleic Acids Research*, 36(Web Server issue). https://doi.org/10.1093/nar/gkn220
@@ -316,17 +316,17 @@ Genomopipe also depends on the following tools — please cite them accordingly:
 
 ## Troubleshooting
 
-**`gffread not found`** — install into `braker_env`:
+**`gffread not found`**  to install into `braker_env`:
 ```bash
 mamba install -n braker_env -c bioconda gffread
 ```
 
-**BRAKER fails with "less than 1000 introns"** — the pipeline automatically retries in `--esmode`. For very fragmented or small genomes, consider supplementing with RNA-Seq via `--auto_rnaseq`.
+**BRAKER fails with "less than 1000 introns"** if this happens the pipeline automatically retries in `--esmode`. For very fragmented or small genomes, consider supplementing with RNA-Seq via `--auto_rnaseq`.
 
-**RepeatModeler fails on small genomes** — expected behavior; the pipeline skips masking automatically for genomes under 1 MB.
+**RepeatModeler fails on small genomes** this is expected behavior; the pipeline skips masking automatically for genomes under 1 MB.
 
-**ColabFold GPU errors** — remove `--use-gpu-relax` from the `colabfold_batch` call in Step 6 if running on CPU only.
+**ColabFold GPU errors** to fix: remove `--use-gpu-relax` from the `colabfold_batch` call in Step 6 if running on CPU only.
 
-**GeneMark license errors** — ensure the `.gm_key` license file is present in `$HOME`. Download from: https://genemark.bme.gatech.edu/license_download.cgi
+**GeneMark license errors** (key is a DNA sequence, and may not look normal) ensure the `.gm_key` license file is present in `$HOME`. Download from: https://genemark.bme.gatech.edu/license_download.cgi
 
-**SRA download failures** — `prefetch` requires network access and may fail behind certain firewalls. Manually provide a BAM file via `--bam` as an alternative.
+**SRA download failures** using `prefetch` requires network access and may fail behind certain firewalls. Manually provide a BAM file via `--bam` as an alternative.
