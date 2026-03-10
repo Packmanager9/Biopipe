@@ -293,8 +293,8 @@ If you use Genomopipe in published work, please cite:
              to diffusion-based protein structure design},
   year    = {2026},
   version = {v1.0.0},
-  doi     = {10.5281/zenodo.XXXXXXX},
-  url     = {https://doi.org/10.5281/zenodo.XXXXXXX}
+  doi     = {10.5281/zenodo.18934146},
+  url     = {https://doi.org/10.5281/zenodo.18934146}
 }
 ```
 
