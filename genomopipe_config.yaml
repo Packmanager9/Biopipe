@@ -1,0 +1,52 @@
+# genomopipe_config.yaml
+# Full example config for the Genomopipe orchestrator.
+# All keys are optional — omitted keys fall back to the defaults shown here.
+# Pass to the orchestrator with: python genomopipe.py genomopipe_config.yaml
+
+# ── Shared / global ─────────────────────────────────────────────────────────
+output_dir:   ./output        # Root directory for all pipeline run dirs
+scripts_dir:  .               # Directory containing genome_to_design.sh,
+                              # plasmid_design_moclo_v3.py, and feedback scripts
+email: PricklyPearEnterprises@gmail.com  # NCBI Entrez email (required for
+                                         # taxonomy lookups in FB6)
+
+# ── Phase 1: genome_to_design.sh ────────────────────────────────────────────
+organism:      "Taraxacum officinale"   # Quoted organism name or NCBI TaxID
+is_eukaryote:  true
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+# bam: /data/rnaseq_merged.bam         # Optional: pre-existing RNA-Seq BAM
+auto_rnaseq:   false    # true → auto-query and download RNA-Seq from SRA
+force:         false    # true → clear genome_to_design.sh checkpoints and restart
+
+# ── Phase 2: plasmid_design_moclo_v3.py ─────────────────────────────────────
+assembly_method:       GoldenGate
+moclo_standard:        marillonnet   # marillonnet | cidar | jump
+enzyme_level0:         BsaI-HFv2    # Level 0 domestication enzyme
+enzyme_level1:         BpiI         # Level 1 assembly enzyme
+promoter:              pJ23119
+rbs:                   RBS_strong
+terminator:            rrnB_T1
+ori:                   pMB1_ori
+marker:                KanR
+# backbone: pUC19_prepared.fasta     # Optional: full backbone (overrides ori+marker)
+perform_domestication: true
+output_prefix:         moclo_plasmid
+genes: []   # Leave empty to auto-discover from proteinmpnn_out/split_seqs,
+            # or list explicit paths:
+            # genes:
+            #   - proteinmpnn_out/split_seqs/design_0_seq0.fasta
+            #   - proteinmpnn_out/split_seqs/design_1_seq3.fasta
+
+# ── Phase 3: Feedback loops ──────────────────────────────────────────────────
+# Feedback Loop 6: BLAST taxonomy → BRAKER re-run with corrected OrthoDB partition
+fb6_min_hits:      5        # Min BLAST hits from a partition to trigger a switch
+fb6_evalue_cutoff: 1.0e-5  # Max e-value for a hit to be counted
+fb6_dry_run:       false    # true → report only, do NOT download or re-run BRAKER
+
+# ── Orchestrator control ─────────────────────────────────────────────────────
+skip_phase1:   false   # Skip Phase 1 (assumes a completed run already exists)
+skip_phase2:   false   # Skip Phase 2 (plasmid design)
+skip_feedback: false   # Skip ALL feedback loops
+
+# Fine-grained feedback loop control:
+run_fb6:       true

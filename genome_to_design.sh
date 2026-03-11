@@ -319,30 +319,76 @@ fi
 _step2b_repeatmask() {
 conda activate braker_env || return 1
 mkdir -p repeat_out
+
+# ── BuildDatabase ──────────────────────────────────────────────────────────
+echo "[REPEATMASK] Building repeat database from $(basename "$clean_genome")"
 BuildDatabase -name "$anno_prefix" "$clean_genome"
-RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | grep -v '^[0-9]*% completed'
-local rm_rc=$?
+local db_rc=$?
+if [ $db_rc -ne 0 ]; then
+    echo "[REPEATMASK] BuildDatabase failed ($db_rc) — skipping masking"
+    cp "$clean_genome" masked.fna
+    conda deactivate
+    return 0
+fi
+
+# ── RepeatModeler ──────────────────────────────────────────────────────────
+# Tee full (unfiltered) output to a dedicated detail log so nothing is lost.
+# Strip only the per-second countdown lines from stdout so pipeline.log stays
+# readable while still showing round headers, errors and summary lines.
+local rm_detail_log="$log_dir/repeatmodeler_detail.log"
+echo "[REPEATMASK] Starting RepeatModeler (full log → $rm_detail_log)"
+echo "[REPEATMASK] This step takes several hours on large genomes — round progress will appear below"
+
+RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
+    tee -a "$rm_detail_log" | \
+    grep -vE '^\s+[0-9]+%\s+completed,\s+[0-9]' | \
+    grep -vE '^\s*$'
+local rm_rc=${PIPESTATUS[0]}   # RepeatModeler exit — not grep's
+
 if [ $rm_rc -ne 0 ]; then
-if [ "$is_eukaryote" = false ]; then
-echo "RepeatModeler failed ($rm_rc) - likely no repeats in small genome or search engine config issue. Skipping masking."
-cp "$clean_genome" masked.fna
-conda deactivate
-return 0
-else
-conda deactivate
-return $rm_rc
+    echo "[REPEATMASK] RepeatModeler exited $rm_rc"
+    if [ "$is_eukaryote" = false ]; then
+        echo "[REPEATMASK] Non-eukaryote: treating as no-repeats, continuing without masking"
+        cp "$clean_genome" masked.fna
+        conda deactivate
+        return 0
+    else
+        echo "[REPEATMASK] Eukaryote: masking required — last 20 lines of detail log:"
+        tail -20 "$rm_detail_log"
+        conda deactivate
+        return $rm_rc
+    fi
 fi
+
+# ── Resolve repeat library ─────────────────────────────────────────────────
+# [ -f "RM_*/glob" ] does NOT expand in bash — must use find.
+local repeat_lib
+repeat_lib=$(find . -maxdepth 2 -name "consensi.fa.classified" | sort | tail -1)
+if [ -z "$repeat_lib" ] || [ ! -s "$repeat_lib" ]; then
+    # Fall back to unclassified consensi if classified was not produced
+    repeat_lib=$(find . -maxdepth 2 -name "consensi.fa" | sort | tail -1)
 fi
-if [ ! -f "RM_*/consensi.fa.classified" ]; then
-echo "No repeat library produced by RepeatModeler. Skipping RepeatMasker."
-cp "$clean_genome" masked.fna
-conda deactivate
-return 0
+if [ -z "$repeat_lib" ] || [ ! -s "$repeat_lib" ]; then
+    echo "[REPEATMASK] RepeatModeler produced no repeat library (consensi.fa is empty or missing)"
+    echo "[REPEATMASK] Continuing without masking"
+    cp "$clean_genome" masked.fna
+    conda deactivate
+    return 0
 fi
-RepeatMasker -pa $num_threads -lib RM_*/consensi.fa.classified -xsmall -dir repeat_out "$clean_genome"
+echo "[REPEATMASK] Using repeat library: $repeat_lib ($(wc -l < "$repeat_lib") lines)"
+
+# ── RepeatMasker ───────────────────────────────────────────────────────────
+echo "[REPEATMASK] Starting RepeatMasker"
+RepeatMasker -pa $num_threads -lib "$repeat_lib" -xsmall -dir repeat_out "$clean_genome"
 local rc=$?
 if [ $rc -eq 0 ] && [ -f "repeat_out/clean.fna.masked" ]; then
-mv "repeat_out/clean.fna.masked" masked.fna
+    mv "repeat_out/clean.fna.masked" masked.fna
+    local masked_pct
+    masked_pct=$(grep -i 'bases masked' repeat_out/clean.fna.tbl 2>/dev/null | grep -oE '[0-9]+\.[0-9]+%' | head -1)
+    echo "[REPEATMASK] RepeatMasker complete — masked ${masked_pct:-unknown} of genome"
+elif [ $rc -eq 0 ]; then
+    echo "[REPEATMASK] RepeatMasker succeeded but masked file not found — falling back to clean genome"
+    cp "$clean_genome" masked.fna
 fi
 conda deactivate
 return $rc
