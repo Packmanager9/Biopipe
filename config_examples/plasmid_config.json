@@ -1,0 +1,49 @@
+{
+  "_comment": "plasmid_config.json — standalone config for plasmid_design_moclo_v3.py",
+
+  "assembly_method": "GoldenGate",
+  "moclo_standard":  "marillonnet",
+
+  "output_prefix": "moclo_plasmid",
+  "output_dir":    "~/output/latest/moclo_plasmids",
+
+  "enzyme_level0": "BsaI-HFv2",
+  "enzyme_level1": "BpiI",
+
+  "enzyme_props": {
+    "BsaI-HFv2": {
+      "recog":        "GGTCTC",
+      "cut":          "1/5",
+      "overhang_len": 4,
+      "opt_temp":     50,
+      "inact_temp":   65,
+      "buffer":       "CutSmart"
+    },
+    "BpiI": {
+      "recog":        "GAAGAC",
+      "cut":          "2/6",
+      "overhang_len": 4,
+      "opt_temp":     37,
+      "inact_temp":   65,
+      "buffer":       "CutSmart"
+    }
+  },
+
+  "promoter":   "pJ23119",
+  "rbs":        "RBS_B0034",
+  "terminator": "rrnB_T1",
+  "ori":        "pMB1_ori",
+  "marker":     "KanR",
+  "backbone":   null,
+
+  "overhang_table": null,
+
+  "perform_domestication":  true,
+  "domestication_enzymes":  ["BsaI", "BpiI"],
+
+  "genes": [],
+
+  "output_base": null,
+  "run_dir":     null,
+  "parts_dir":   null
+}
