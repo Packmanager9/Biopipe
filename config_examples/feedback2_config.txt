@@ -1,0 +1,18 @@
+# ============================================================
+#  feedback2_config.txt
+#  Config for feedback2_plddt_mpnn_resample.py
+# ============================================================
+
+run_dir: ~/output/latest
+
+plddt_pass: 75
+plddt_warn: 60
+
+max_iterations: 3
+resample_temp: 0.2
+resample_n: 16
+
+colabfold_recycles: 3
+colabfold_use_gpu_relax: true
+
+output_dir: feedback2_loop

@@ -1,0 +1,50 @@
+# ============================================================
+#  genomopipe_config.txt
+#  Master orchestrator config for genomopipe.py
+#  Format: key: value
+#  Lists: bare values on separate lines under a key ending with ':'
+#  Comments: lines beginning with #
+# ============================================================
+
+# Shared / global
+output_dir: ~/output
+scripts_dir: .
+email: you@example.com
+
+# Phase 1 — genome_to_design.sh
+organism: Taraxacum officinale
+is_eukaryote: true
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+auto_rnaseq: false
+force: false
+# bam: /data/rnaseq_merged.bam
+
+# Phase 2 — plasmid_design_moclo_v3.py
+assembly_method: GoldenGate
+moclo_standard: marillonnet
+enzyme_level0: BsaI-HFv2
+enzyme_level1: BpiI
+promoter: pJ23119
+rbs: RBS_strong
+terminator: rrnB_T1
+ori: pMB1_ori
+marker: KanR
+perform_domestication: true
+output_prefix: moclo_plasmid
+
+# List of CDS FASTA paths (leave empty to auto-discover from split_seqs)
+genes:
+# proteinmpnn_out/split_seqs/design_0_seq0.fasta
+# proteinmpnn_out/split_seqs/design_1_seq3.fasta
+
+# Phase 3 — Feedback Loop 6
+fb6_min_hits: 5
+fb6_evalue_cutoff: 1e-5
+fb6_dry_run: false
+
+# Orchestrator flow control
+skip_phase1: false
+skip_phase2: false
+skip_feedback: false
+run_fb6: true
+reset: false

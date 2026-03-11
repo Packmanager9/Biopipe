@@ -1,0 +1,14 @@
+{
+  "_comment": "feedback5_config.json — config for feedback5_designed_proteins_to_annotation.sh",
+
+  "run_dir": "~/output/latest",
+
+  "plddt_min":          75,
+  "include_blast_func": true,
+
+  "target_organism":  "",
+  "target_output":    "",
+  "target_eukaryote": true,
+
+  "output_dir": "feedback5_loop"
+}

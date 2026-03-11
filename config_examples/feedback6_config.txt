@@ -1,0 +1,22 @@
+# ============================================================
+#  feedback6_config.txt
+#  Config for feedback6_blast_taxonomy_rerun.py
+#  Tip: set dry_run: true on first use to audit before re-running BRAKER.
+# ============================================================
+
+run_dir: ~/output/latest
+is_eukaryote: true
+email: you@example.com
+
+min_hits: 5
+evalue_cutoff: 1e-5
+
+dry_run: false
+
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+# bam_file: /data/rnaseq_merged.bam
+num_threads: 0
+
+min_protein_len: 200
+
+output_dir: feedback6_loop

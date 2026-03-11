@@ -1,0 +1,60 @@
+# ============================================================
+#  genomopipe_config.yaml
+#  Master orchestrator config for genomopipe.py
+#  All keys are optional — omitted keys fall back to defaults.
+#  CLI flags always override config file values.
+# ============================================================
+
+# ── Shared / global ─────────────────────────────────────────
+output_dir:   ~/output           # root directory for all run subdirectories
+scripts_dir:  .                  # directory containing all pipeline scripts
+email:        you@example.com    # NCBI Entrez email — required for FB6 taxonomy lookups
+
+# ── Phase 1: genome_to_design.sh ────────────────────────────
+organism:      "Taraxacum officinale"   # quoted organism name or NCBI TaxID
+is_eukaryote:  true
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+
+# RNA-Seq options (choose one or neither):
+# bam: /data/rnaseq_merged.bam           # provide a pre-aligned BAM
+auto_rnaseq:   false                     # true = auto-query and download from SRA
+
+force:         false   # true = clear genome_to_design.sh checkpoints and restart Phase 1
+
+# ── Phase 2: plasmid_design_moclo_v3.py ─────────────────────
+assembly_method:       GoldenGate    # currently only GoldenGate supported
+moclo_standard:        marillonnet   # marillonnet | cidar | jump
+
+# Restriction enzymes
+enzyme_level0: BsaI-HFv2   # used for CDS domestication (Level 0 parts)
+enzyme_level1: BpiI         # used for Level 1 assembly
+
+# Standard genetic parts (names or file paths)
+promoter:   pJ23119
+rbs:        RBS_strong
+terminator: rrnB_T1
+ori:        pMB1_ori
+marker:     KanR
+# backbone: pUC19_prepared.fasta   # full backbone FASTA — overrides ori + marker if set
+
+perform_domestication: true         # remove internal enzyme sites by synonymous substitution
+output_prefix:         moclo_plasmid
+
+# CDS inputs — leave empty to auto-discover from proteinmpnn_out/split_seqs/
+genes: []
+# Explicit list example:
+# genes:
+#   - proteinmpnn_out/split_seqs/design_0_seq0.fasta
+#   - proteinmpnn_out/split_seqs/design_1_seq3.fasta
+
+# ── Phase 3: Feedback Loop 6 (orchestrator-integrated) ──────
+fb6_min_hits:      5       # min BLAST accessions in a partition to trigger a re-run
+fb6_evalue_cutoff: 1.0e-5  # max e-value for a hit to count toward partition tally
+fb6_dry_run:       false   # true = audit only; print report without re-running BRAKER
+
+# ── Orchestrator flow control ────────────────────────────────
+skip_phase1:   false   # skip genome_to_design.sh (requires an existing run)
+skip_phase2:   false   # skip plasmid design
+skip_feedback: false   # skip all feedback loops
+run_fb6:       true    # run Feedback Loop 6 as part of orchestrator
+reset:         false   # clear orchestrator sentinels before starting (keeps step checkpoints)

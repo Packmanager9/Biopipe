@@ -1,0 +1,40 @@
+# ============================================================
+#  feedback3_config.yaml
+#  Config for feedback3_blast_to_braker.sh
+#
+#  Strategy: parse blast_results.txt for high-confidence hits,
+#  fetch the full subject sequences from NCBI, combine with the
+#  original OrthoDB hint file, then re-run BRAKER with the
+#  enriched protein hint set. Compares gene counts and mean
+#  protein length before and after and writes a diff report.
+#
+#  To continue the design pipeline from enriched proteins:
+#    cp <run_dir>/feedback3_loop/proteins_enriched.faa <run_dir>/proteins.faa
+#    rm <run_dir>/.step5_rfdiffusion.done   # and any later checkpoints
+#    ./genome_to_design.sh "Organism" ./output true
+# ============================================================
+
+run_dir:     ~/output/latest   # run directory containing blast_results.txt
+is_eukaryote: true             # passed through to BRAKER re-run
+
+# ── BLAST hit filtering ──────────────────────────────────────
+evalue_cutoff:      1e-10   # max e-value for a hit to be included as a hint
+pident_min:         40      # min percent identity for inclusion
+max_hits_per_query: 5       # max subject sequences fetched per query design
+
+# ── BRAKER re-run options ────────────────────────────────────
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+bam_file:      ""   # RNA-Seq BAM to carry forward into re-annotation (optional)
+num_threads:   0    # 0 = auto-detect via nproc
+
+# ── Protein filtering (applied after re-annotation) ─────────
+min_protein_len: 200   # min amino acid length to keep (200 for eukaryotes, 100 for prokaryotes)
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback3_loop   # relative to run_dir
+# Outputs written:
+#   blast_subjects.faa       — fetched BLAST subject sequences
+#   enriched_hints.faa       — blast_subjects + original OrthoDB hints combined
+#   braker_enriched/         — BRAKER re-annotation output
+#   proteins_enriched.faa    — filtered proteins from enriched annotation
+#   fb3_annotation_diff.txt  — gene count and length comparison

@@ -1,0 +1,18 @@
+{
+  "_comment": "feedback3_config.json — config for feedback3_blast_to_braker.sh",
+
+  "run_dir":      "~/output/latest",
+  "is_eukaryote": true,
+
+  "evalue_cutoff":      1e-10,
+  "pident_min":         40,
+  "max_hits_per_query": 5,
+
+  "genemark_path": "~/genemark-etp-full/gmetp_linux_64/bin",
+  "bam_file":      "",
+  "num_threads":   0,
+
+  "min_protein_len": 200,
+
+  "output_dir": "feedback3_loop"
+}

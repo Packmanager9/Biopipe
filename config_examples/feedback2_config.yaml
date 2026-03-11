@@ -1,0 +1,30 @@
+# ============================================================
+#  feedback2_config.yaml
+#  Config for feedback2_plddt_mpnn_resample.py
+#
+#  Strategy: split ColabFold predictions into PASS / RETRY by
+#  pLDDT threshold. For RETRY designs, resample ProteinMPNN at
+#  higher temperature to diversify the sequence search. Re-evaluate
+#  with ColabFold. Repeat until all designs pass or max_iterations
+#  is reached. Unconverged designs are flagged in the summary TSV.
+#
+#  Run FB2 before FB1 — converged sequences make better motifs.
+# ============================================================
+
+run_dir: ~/output/latest   # run directory containing colabfold_out/ and designs/
+
+# ── Pass / fail thresholds ───────────────────────────────────
+plddt_pass: 75   # mean pLDDT ≥ this → design is accepted (PASS)
+plddt_warn: 60   # mean pLDDT < this → warning printed even on PASS (low confidence)
+
+# ── Resampling parameters ────────────────────────────────────
+max_iterations: 3    # max ProteinMPNN retry rounds before marking a design unconverged
+resample_temp:  0.2  # ProteinMPNN sampling temperature on retry (higher = more diverse)
+resample_n:     16   # number of new sequences to generate per retry backbone
+
+# ── ColabFold re-evaluation ──────────────────────────────────
+colabfold_recycles:      3
+colabfold_use_gpu_relax: true
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback2_loop   # relative to run_dir; fb2_summary.tsv written here

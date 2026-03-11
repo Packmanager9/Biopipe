@@ -1,0 +1,33 @@
+# ============================================================
+#  feedback1_config.yaml
+#  Config for feedback1_colabfold_to_rfdiffusion.sh
+#
+#  Strategy: rank ColabFold predictions by pLDDT, take the top-N,
+#  feed each back to RFdiffusion as a fixed motif, design sequences
+#  with ProteinMPNN, re-evaluate with ColabFold. Repeat for N iterations.
+#  "Exploit the best hits" — focuses redesign effort on scaffolds
+#  that already showed high confidence.
+# ============================================================
+
+run_dir: ~/output/latest   # run directory to read ColabFold results from
+
+# ── Motif selection ──────────────────────────────────────────
+top_n:     3    # number of top ColabFold structures to use as motifs
+plddt_min: 70   # minimum mean pLDDT a structure must have to qualify
+
+# ── RFdiffusion motif definition ─────────────────────────────
+motif_residues: "A1-50"   # fixed residue range passed to RFdiffusion contigmap
+flank_min:      10        # min length of scaffolded flanking region (residues)
+flank_max:      40        # max length of scaffolded flanking region (residues)
+
+# ── Loop parameters ──────────────────────────────────────────
+iterations:  2   # number of ColabFold → RFdiffusion redesign cycles
+num_designs: 4   # RFdiffusion backbone designs generated per motif per iteration
+num_seqs:    8   # ProteinMPNN sequences designed per backbone
+
+# ── ColabFold re-evaluation ──────────────────────────────────
+colabfold_recycles: 3
+colabfold_use_gpu_relax: true   # set false for CPU-only environments
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback1_loop   # relative to run_dir; created if absent

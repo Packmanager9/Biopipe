@@ -1,0 +1,33 @@
+# ============================================================
+#  feedback5_config.yaml
+#  Config for feedback5_designed_proteins_to_annotation.sh
+#
+#  Strategy: filter ColabFold-predicted designed proteins by
+#  pLDDT threshold, combine passing sequences with the original
+#  OrthoDB hints, and produce an enriched hint file. This can be
+#  used to (a) re-run BRAKER on the same organism or (b) bootstrap
+#  annotation of a related organism via target_organism.
+#
+#  Run FB5 last — after designs are fully validated by FB2 and FB4.
+#  If using cross-species bootstrapping, run FB5 from the reference
+#  organism before launching the target organism pipeline.
+# ============================================================
+
+run_dir: ~/output/latest   # run directory containing colabfold_out/ and blast_results.txt
+
+# ── Design filtering ─────────────────────────────────────────
+plddt_min:          75     # min mean pLDDT for a design to be included as a hint
+include_blast_func: true   # annotate hint sequences with BLAST function labels in headers
+
+# ── Target organism (optional cross-species bootstrapping) ───
+# If target_organism is set, genome_to_design.sh is automatically launched
+# for the new species using designed_hints.faa as --prot_seq.
+target_organism:  ""      # e.g. "Beta vulgaris subsp. maritima" — leave empty to skip
+target_output:    ""      # output directory for the target organism run
+target_eukaryote: true    # is_eukaryote flag for the target organism run
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback5_loop   # relative to run_dir
+# Outputs written:
+#   designed_hints.faa   — validated designs + OrthoDB hints combined
+#   fb5_manifest.tsv     — columns: design_id, mean_pLDDT, backbone, blast_function, included

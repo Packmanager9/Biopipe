@@ -1,0 +1,21 @@
+{
+  "_comment": "feedback1_config.json — config for feedback1_colabfold_to_rfdiffusion.sh",
+
+  "run_dir": "~/output/latest",
+
+  "top_n":     3,
+  "plddt_min": 70,
+
+  "motif_residues": "A1-50",
+  "flank_min":      10,
+  "flank_max":      40,
+
+  "iterations":  2,
+  "num_designs": 4,
+  "num_seqs":    8,
+
+  "colabfold_recycles":       3,
+  "colabfold_use_gpu_relax":  true,
+
+  "output_dir": "feedback1_loop"
+}

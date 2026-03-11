@@ -1,0 +1,16 @@
+# ============================================================
+#  feedback5_config.txt
+#  Config for feedback5_designed_proteins_to_annotation.sh
+# ============================================================
+
+run_dir: ~/output/latest
+
+plddt_min: 75
+include_blast_func: true
+
+# Cross-species bootstrapping (leave empty to skip)
+# target_organism: Beta vulgaris subsp. maritima
+# target_output: ~/output_beet_maritima
+# target_eukaryote: true
+
+output_dir: feedback5_loop

@@ -1,0 +1,49 @@
+# ============================================================
+#  feedback6_config.yaml
+#  Config for feedback6_blast_taxonomy_rerun.py
+#
+#  Strategy: parse blast_results.txt, fetch the taxonomic lineage
+#  of each subject accession, assign each to its most-specific
+#  OrthoDB partition keyword, and compare the dominant partition
+#  against the one used in Step 3. If a more specific partition
+#  accumulates >= min_hits accessions, download it, re-run BRAKER
+#  with corrected hints, and filter proteins.
+#
+#  Best practice: run with dry_run: true first to read the taxonomy
+#  audit before committing to a full BRAKER re-run (same runtime
+#  as the original annotation step).
+#
+#  FB6 is also run automatically by the orchestrator (genomopipe.py)
+#  using the fb6_* keys in the master config.
+#
+#  To continue the design pipeline from corrected proteins:
+#    cp <run_dir>/feedback6_loop/proteins_corrected.faa <run_dir>/proteins.faa
+#    rm <run_dir>/.step5_rfdiffusion.done   # and any later checkpoints
+#    python genomopipe.py config.yaml --skip_phase1
+# ============================================================
+
+run_dir:      ~/output/latest   # run directory containing blast_results.txt
+is_eukaryote: true
+email:        you@example.com   # NCBI Entrez email for taxonomy lookups
+
+# ── Partition switch trigger ──────────────────────────────────
+min_hits:      5       # min accessions in an alternative partition to trigger a switch
+evalue_cutoff: 1.0e-5  # max BLAST e-value for an accession to count toward partition tally
+
+# ── Execution mode ───────────────────────────────────────────
+dry_run: false   # true = audit and report only; do not download partition or re-run BRAKER
+
+# ── BRAKER re-run options (only used when dry_run is false) ──
+genemark_path: ~/genemark-etp-full/gmetp_linux_64/bin
+bam_file:      ""    # RNA-Seq BAM to carry forward (optional)
+num_threads:   0     # 0 = auto-detect via nproc
+
+# ── Protein filtering (applied after re-annotation) ──────────
+min_protein_len: 200
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback6_loop   # relative to run_dir
+# Outputs written:
+#   feedback6_taxonomy_audit.txt  — per-partition hit counts, original vs. suggested partition
+#   braker_corrected/             — BRAKER re-annotation with corrected OrthoDB (if triggered)
+#   proteins_corrected.faa        — filtered proteins from corrected annotation

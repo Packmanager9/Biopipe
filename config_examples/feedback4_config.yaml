@@ -1,0 +1,35 @@
+# ============================================================
+#  feedback4_config.yaml
+#  Config for feedback4_domesticated_cds_revalidate.py
+#
+#  Strategy: read domesticated CDSs from Step 9 GenBank files,
+#  calculate synonymous changes vs. pre-domestication source,
+#  run ColabFold on domesticated amino acid sequences, compare
+#  pLDDT against original Step 6 predictions, and flag regressions.
+#
+#  Synonymous codon substitutions can alter local mRNA structure
+#  and translation rate, occasionally affecting co-translational
+#  folding. Run this after Phase 2 plasmid design to catch
+#  structural regressions before any sequence reaches synthesis.
+#
+#  Install dnachisel[reports] to reduce the number of flags —
+#  its solver distributes substitutions more evenly across the CDS.
+# ============================================================
+
+run_dir:     ~/output/latest   # run directory containing colabfold_out/ and moclo_plasmids/
+plasmid_dir: ""                # path to .gb files; defaults to <run_dir>/moclo_plasmids if empty
+
+# ── Regression thresholds ────────────────────────────────────
+plddt_drop_warn: 5.0    # pLDDT drop ≥ this value → WARNING in report
+plddt_drop_fail: 15.0   # pLDDT drop ≥ this value → FAIL flag in report
+
+# ── ColabFold re-evaluation ──────────────────────────────────
+colabfold_recycles:      3
+colabfold_use_gpu_relax: true
+
+# ── Output ───────────────────────────────────────────────────
+output_dir: feedback4_loop   # relative to run_dir
+# Outputs written:
+#   domesticated_seqs/   — extracted domesticated amino acid sequences
+#   colabfold_dom/       — ColabFold predictions for domesticated sequences
+#   fb4_report.tsv       — columns: cds_id, num_changes, orig_pLDDT, dom_pLDDT, delta, flag

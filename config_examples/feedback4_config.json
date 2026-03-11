@@ -1,0 +1,14 @@
+{
+  "_comment": "feedback4_config.json — config for feedback4_domesticated_cds_revalidate.py",
+
+  "run_dir":     "~/output/latest",
+  "plasmid_dir": "",
+
+  "plddt_drop_warn": 5.0,
+  "plddt_drop_fail": 15.0,
+
+  "colabfold_recycles":       3,
+  "colabfold_use_gpu_relax":  true,
+
+  "output_dir": "feedback4_loop"
+}
