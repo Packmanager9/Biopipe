@@ -1062,6 +1062,29 @@ mamba install -n braker_env -c bioconda gffread
 
 **GUI sidebar shows stale `.step*.failed` file during a `--force` run** `--force` clears `.failed` sentinels at pipeline startup. If the sidebar has not yet refreshed, it may briefly show the old state. Hit ↻ or wait up to 4 seconds for the auto-refresh to fire.
 
+**Prokka fails: `Can't locate XML/Simple.pm`** the `XML::Simple` Perl module is missing from `braker_env`:
+```bash
+conda install -n braker_env -c bioconda perl-xml-simple
+```
+
+**Prokka fails: `needs blastp 2.2 or higher`** Prokka 1.13 has a version-parsing bug — it strips the last digit from the version string, so `2.15` becomes `2.1` which fails the `>= 2.2` check. Two fixes are needed:
+
+1. Ensure `braker_env`'s blastp symlinks to the base environment's copy (which Prokka parses correctly):
+```bash
+ln -sf ~/miniconda3/bin/blastp ~/miniconda3/envs/braker_env/bin/blastp
+```
+
+2. Lower Prokka's minimum required blastp version to `2.1` so the parsed value passes:
+```bash
+sudo sed -i 's/MINVER  => "2\.2"/MINVER  => "2.1"/g' ~/miniconda3/bin/prokka
+```
+
+Verify both changes took effect:
+```bash
+grep -n "MINVER" ~/miniconda3/bin/prokka | grep -A1 "159:\|165:"
+ls -la ~/miniconda3/envs/braker_env/bin/blastp
+```
+
 ---
 
 ## Citations
