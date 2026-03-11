@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Genomopipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+<style>
+/* ── Tokens ──────────────────────────────────────────── */
+:root {
+  --bg0:#030d1b; --bg1:#071828; --bg2:#0d2540; --bg3:#133058;
+  --c:#00e5ff;  --c2:#00b4cc; --g:#00ff88; --a:#ffaa00;
+  --r:#ff3355;  --p:#b04aff;
+  --tx:#8ecfec; --txd:#3a6880; --wh:#dff4ff;
+  --bd:rgba(0,229,255,.13);
+  --gc:0 0 10px rgba(0,229,255,.4);
+  --gg:0 0 10px rgba(0,255,136,.4);
+  --gr:0 0 10px rgba(255,51,85,.4);
+  --R:5px; --mono:'Courier New',monospace; --ui:'Comic Sans MS','Comic Sans',sans-serif,'Noto Color Emoji';
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--tx);font-family:var(--ui);font-size:13px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--c2)}
+
+/* ── App shell ───────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* ── Titlebar ────────────────────────────────────────── */
+#tb{
+  height:40px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;flex-shrink:0;-webkit-app-region:drag;
+  background:linear-gradient(90deg,#020c1c,#071a2e 50%,#020c1c);
+  border-bottom:1px solid var(--bd);
+}
+#tb .logo{
+  font-family:var(--mono);font-size:14px;font-weight:bold;letter-spacing:5px;
+  color:var(--c);text-shadow:0 0 18px var(--c),0 0 36px rgba(0,229,255,.25);
+  -webkit-app-region:no-drag
+}
+#tb .logo em{color:var(--g);font-style:normal;text-shadow:0 0 18px var(--g)}
+#tb-status{
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  padding:3px 10px;border:1px solid var(--bd);background:var(--bg1);border-radius:2px;
+  color:var(--txd);-webkit-app-region:no-drag
+}
+#tb-status.running{border-color:var(--g);color:var(--g);text-shadow:var(--gg);animation:pulse 1.4s infinite}
+#tb-status.error  {border-color:var(--r);color:var(--r)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ── Workspace ───────────────────────────────────────── */
+#ws{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidenav ─────────────────────────────────────────── */
+#nav{
+  width:52px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px
+}
+.nb{
+  width:38px;height:38px;border-radius:var(--R);border:1px solid transparent;
+  background:transparent;color:var(--txd);cursor:pointer;font-size:17px;
+  display:flex;align-items:center;justify-content:center;transition:all .13s;position:relative
+}
+.nb:hover{background:var(--bg3);color:var(--c);border-color:var(--bd)}
+.nb.on{background:var(--bg2);color:var(--c);border-color:rgba(0,229,255,.4);box-shadow:var(--gc)}
+.nb .tip{
+  position:absolute;left:48px;background:var(--bg2);color:var(--wh);
+  padding:3px 10px;border-radius:var(--R);white-space:nowrap;font-size:11px;
+  font-family:var(--mono);letter-spacing:1px;border:1px solid var(--bd);
+  pointer-events:none;opacity:0;transition:opacity .12s;z-index:200
+}
+.nb:hover .tip{opacity:1}
+.ns{width:28px;height:1px;background:var(--bd);margin:3px 0}
+
+/* ── Left sidebar ────────────────────────────────────── */
+#sb{
+  width:230px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.sbh{
+  padding:8px 11px;font-size:10px;letter-spacing:2px;color:var(--txd);
+  border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+.sbh button{background:none;border:none;color:var(--txd);cursor:pointer;font-size:13px;padding:0}
+.sbh button:hover{color:var(--c)}
+#sb-tree{flex:1;overflow-y:auto;padding:3px 0}
+.ti{
+  display:flex;align-items:center;gap:5px;padding:3px 8px;cursor:pointer;
+  border-radius:3px;font-family:var(--mono);font-size:11px;transition:background .1s;user-select:none
+}
+.ti:hover{background:var(--bg3)}
+.ti.sel{background:var(--bg2);color:var(--c)}
+.ti .ic{flex-shrink:0;width:14px;text-align:center}
+.ti .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ti .sz{color:var(--txd);font-size:10px;flex-shrink:0}
+.t-dir{color:var(--c2);font-weight:bold}
+.t-pdb{color:#7dcfff} .t-fa{color:var(--g)} .t-gb{color:var(--a)}
+.t-log{color:var(--txd)} .t-ok{color:var(--g)} .t-fail{color:var(--r)}
+
+/* ── Content area ────────────────────────────────────── */
+#ct{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.pnl{display:none;flex:1;overflow:hidden}
+.pnl.on{display:flex}
+
+/* ── Shared form pieces ──────────────────────────────── */
+.pt{font-size:10px;letter-spacing:3px;color:var(--txd);margin-bottom:18px}
+.sh{font-size:10px;letter-spacing:2px;color:var(--c2);border-bottom:1px solid var(--bd);padding-bottom:5px;margin:18px 0 12px}
+.fr{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.fr label{min-width:175px;font-size:12px;color:var(--tx);flex-shrink:0}
+.inp{
+  flex:1;max-width:480px;background:var(--bg2);border:1px solid var(--bd);
+  color:var(--wh);font-family:var(--mono);font-size:12px;padding:6px 11px;
+  border-radius:var(--R);outline:none;transition:border-color .13s,box-shadow .13s
+}
+.inp:focus{border-color:var(--c);box-shadow:var(--gc)}
+.inp::placeholder{color:var(--txd)}
+.ib{
+  background:var(--bg2);border:1px solid var(--bd);color:var(--txd);
+  padding:5px 9px;border-radius:var(--R);cursor:pointer;font-size:11px;transition:all .13s;flex-shrink:0
+}
+.ib:hover{border-color:var(--c);color:var(--c)}
+.tr{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.tr label{font-size:12px;color:var(--tx);cursor:pointer;user-select:none}
+.tog{position:relative;width:38px;height:19px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tsl{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--bd);border-radius:9px;cursor:pointer;transition:.18s}
+.tsl::before{content:'';position:absolute;width:13px;height:13px;left:2px;top:2px;background:var(--txd);border-radius:50%;transition:.18s}
+.tog input:checked+.tsl{background:rgba(0,255,136,.18);border-color:var(--g)}
+.tog input:checked+.tsl::before{transform:translateX(19px);background:var(--g);box-shadow:var(--gg)}
+.ar{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+.bp{padding:9px 26px;border-radius:var(--R);background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.45);color:var(--c);font-family:var(--mono);font-size:12px;letter-spacing:2px;cursor:pointer;transition:all .13s;text-transform:uppercase}
+.bp:hover{background:rgba(0,229,255,.2);box-shadow:var(--gc)}
+.bs{padding:9px 18px;border-radius:var(--R);background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.28);color:var(--g);font-family:var(--mono);font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .13s;text-transform:uppercase}
+.bs:hover{background:rgba(0,255,136,.14);box-shadow:var(--gg)}
+.bd-{padding:9px 18px;border-radius:var(--R);background:rgba(255,51,85,.07);border:1px solid rgba(255,51,85,.28);color:var(--r);font-family:var(--mono);font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .13s;text-transform:uppercase}
+.bd-:hover{background:rgba(255,51,85,.16);box-shadow:var(--gr)}
+.sm{padding:4px 11px;border-radius:var(--R);font-size:10px;background:var(--bg2);border:1px solid var(--bd);color:var(--txd);cursor:pointer;transition:all .11s;font-family:var(--mono);letter-spacing:1px}
+.sm:hover{border-color:var(--c);color:var(--c)}
+.sm.g:hover{border-color:var(--g);color:var(--g)}
+.sm.a:hover{border-color:var(--a);color:var(--a)}
+.sm.r:hover{border-color:var(--r);color:var(--r)}
+
+/* ── Configure ───────────────────────────────────────── */
+#p-cfg{flex-direction:column;overflow-y:auto;padding:26px 38px}
+
+/* ── Run ─────────────────────────────────────────────── */
+#p-run{flex-direction:column;padding:18px 24px;gap:12px}
+.pbb{height:5px;background:var(--bg3);border-radius:3px;border:1px solid var(--bd);overflow:hidden;margin:6px 0 3px}
+.pbf{height:100%;background:linear-gradient(90deg,var(--g),var(--c));border-radius:3px;width:0%;transition:width .45s;box-shadow:0 0 7px var(--g)}
+.sps{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0}
+.sp{padding:3px 8px;border-radius:9px;font-size:10px;font-family:var(--mono);border:1px solid var(--bd);background:var(--bg2);color:var(--txd)}
+.sp.done{border-color:var(--g);color:var(--g);background:rgba(0,255,136,.06)}
+.sp.act {border-color:var(--c);color:var(--c);background:rgba(0,229,255,.08);animation:pulse 1.4s infinite}
+.sp.fail{border-color:var(--r);color:var(--r)}
+#log{flex:1;overflow-y:auto;background:var(--bg1);border:1px solid var(--bd);border-radius:var(--R);padding:10px;font-family:var(--mono);font-size:11px;line-height:1.6}
+.ll{white-space:pre-wrap;word-break:break-all;color:var(--tx)}
+.ll.sta{color:var(--c)} .ll.don{color:var(--g)} .ll.fai{color:var(--r)} .ll.war{color:var(--a)} .ll.ski{color:var(--txd)}
+
+/* ── Structures ──────────────────────────────────────── */
+#p-str{flex-direction:row;overflow:hidden}
+.pdbl{width:220px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.pdbl-i{flex:1;overflow-y:auto;padding:4px 0;min-height:0}
+.pi{padding:7px 11px;cursor:pointer;border-left:2px solid transparent;font-family:var(--mono);font-size:11px;transition:all .11s;user-select:none}
+.pi:hover{background:var(--bg3)}
+.pi.sel{border-left-color:var(--c);background:var(--bg2);color:var(--c)}
+.pi .pn{color:var(--tx)} .pi .pt2{font-size:10px;color:var(--txd)} .pi.sel .pn{color:var(--c)}
+#svw{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+#vtabs{display:flex;align-items:stretch;background:var(--bg0);border-bottom:1px solid var(--bd);flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;min-height:0}
+#vtabs::-webkit-scrollbar{display:none}
+#vtabs:empty{display:none}
+.vtab{display:flex;align-items:center;gap:6px;padding:0 10px 0 13px;font-size:11px;font-family:var(--mono);color:var(--txd);border-right:1px solid var(--bd);cursor:pointer;white-space:nowrap;min-width:0;max-width:180px;transition:background .1s;flex-shrink:0;height:30px}
+.vtab:hover{background:var(--bg2);color:var(--tx)}
+.vtab.on{background:var(--bg2);color:var(--c);border-bottom:2px solid var(--c);margin-bottom:-1px}
+.vtab .vtn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.vtab .vtx{font-size:13px;color:var(--txd);line-height:1;flex-shrink:0;padding:1px 2px;border-radius:3px}
+.vtab .vtx:hover{background:rgba(255,255,255,.12);color:var(--tx)}
+#vtb{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--bd);flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;white-space:nowrap}
+#vtb::-webkit-scrollbar{display:none}
+#vtb select{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:3px 7px;border-radius:var(--R);font-size:11px;outline:none;cursor:pointer;flex-shrink:0}
+#vtb .sep{width:1px;height:16px;background:var(--bd);flex-shrink:0;margin:0 2px}
+#mol{flex:1;min-height:0;min-width:0;position:relative;background:#020c18;display:block}
+#mol canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+#vkeys{padding:4px 12px;font-size:10px;color:var(--txd);font-family:var(--mono);flex-shrink:0;border-top:1px solid var(--bd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Sequences ───────────────────────────────────────── */
+#p-seq{flex-direction:row;overflow:hidden}
+.seql{width:215px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.seql-i{flex:1;overflow-y:auto;padding:4px 0}
+.si{padding:6px 11px;cursor:pointer;border-left:2px solid transparent;font-family:var(--mono);font-size:11px;transition:all .11s}
+.si:hover{background:var(--bg3)}
+.si.sel{border-left-color:var(--g);background:var(--bg2);color:var(--g)}
+#seqv{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#sqtb{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+#sqtb input{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:4px 8px;border-radius:var(--R);font-family:var(--mono);font-size:11px;outline:none;width:180px}
+#sqct{flex:1;overflow:auto;padding:13px 17px;font-family:var(--mono);font-size:12px}
+.fe{margin-bottom:15px}
+.fh{color:var(--c);margin-bottom:3px;font-size:11px}
+.fs{line-height:1.75;word-break:break-all}
+.aH,.aK,.aR{color:#60d8ff} .aD,.aE{color:#ff6b6b}
+.aA,.aV,.aL,.aI,.aM,.aF,.aW{color:#ffa057} .aY{color:#ffcf5a}
+.aP,.aG{color:#c87dff} .aC{color:#ffd700}
+.aS,.aT,.aN,.aQ{color:#70e0a0} .aX{color:var(--tx)}
+
+/* ── Plasmids ─────────────────────────────────────────── */
+#p-pla{flex-direction:row;overflow:hidden}
+.gbl{width:215px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.gbl-i{flex:1;overflow-y:auto;padding:4px 0}
+.gi{padding:6px 11px;cursor:pointer;border-left:2px solid transparent;font-family:var(--mono);font-size:11px;transition:all .11s}
+.gi:hover{background:var(--bg3)}
+.gi.sel{border-left-color:var(--a);background:var(--bg2);color:var(--a)}
+#gbv{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#gbtb{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+#gbct{flex:1;overflow:auto;padding:14px 18px}
+.gbfeat{margin-top:14px}
+.gbfr{display:flex;gap:10px;padding:4px 7px;border-radius:var(--R);font-family:var(--mono);font-size:11px;border:1px solid transparent;margin-bottom:2px;transition:background .09s}
+.gbfr:hover{background:var(--bg2)}
+.gft{color:var(--a);min-width:78px} .gfl{color:var(--txd);min-width:90px}
+.gfq{color:var(--tx);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── BLAST ────────────────────────────────────────────── */
+#p-bl{flex-direction:column;padding:16px 22px;overflow:hidden;gap:12px}
+#blfr{display:flex;gap:7px;align-items:center;flex-shrink:0}
+#blfr input{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:4px 9px;border-radius:var(--R);font-family:var(--mono);font-size:11px;outline:none;width:260px}
+#blfr select{background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:4px 8px;border-radius:var(--R);font-size:11px;outline:none;cursor:pointer}
+#bltw{flex:1;overflow:auto;border:1px solid var(--bd);border-radius:var(--R)}
+table.blt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+table.blt thead{position:sticky;top:0;background:var(--bg2)}
+table.blt th{padding:7px 11px;text-align:left;color:var(--c);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none}
+table.blt th:hover{color:var(--wh)}
+table.blt td{padding:5px 11px;border-bottom:1px solid rgba(0,229,255,.05);color:var(--tx)}
+table.blt tr:hover td{background:var(--bg2)}
+table.blt td.ev{color:var(--g)} table.blt td.pi{color:var(--c)} table.blt td.fn{color:var(--a)}
+
+/* ── Files ────────────────────────────────────────────── */
+#p-fil{flex-direction:column;overflow:hidden}
+/* ── File browser address bar ── */
+#fb-bar{display:flex;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--bg1)}
+#fb-back{background:var(--bg2);border:1px solid var(--bd);color:var(--txd);padding:4px 9px;border-radius:var(--R);cursor:pointer;font-size:13px;transition:all .12s;flex-shrink:0}
+#fb-back:hover:not(:disabled){border-color:var(--c);color:var(--c)}
+#fb-back:disabled{opacity:.3;cursor:default}
+#fb-up{background:var(--bg2);border:1px solid var(--bd);color:var(--txd);padding:4px 9px;border-radius:var(--R);cursor:pointer;font-size:13px;transition:all .12s;flex-shrink:0}
+#fb-up:hover{border-color:var(--c);color:var(--c)}
+#fb-addr{flex:1;background:var(--bg2);border:1px solid var(--bd);color:var(--wh);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:var(--R);outline:none;transition:border-color .12s}
+#fb-addr:focus{border-color:var(--c);box-shadow:0 0 6px rgba(0,229,255,.25)}
+#fb-go{background:var(--bg2);border:1px solid var(--bd);color:var(--txd);padding:4px 10px;border-radius:var(--R);cursor:pointer;font-size:11px;font-family:var(--mono);transition:all .12s;flex-shrink:0}
+#fb-go:hover{border-color:var(--g);color:var(--g)}
+#fb-browse-btn{background:var(--bg2);border:1px solid var(--bd);color:var(--txd);padding:4px 9px;border-radius:var(--R);cursor:pointer;font-size:11px;font-family:var(--mono);transition:all .12s;flex-shrink:0}
+#fb-browse-btn:hover{border-color:var(--c);color:var(--c)}
+/* ── File browser split ── */
+#fb-split{display:flex;flex:1;overflow:hidden}
+#ftp{width:320px;flex-shrink:0;border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+#fb-dir-hdr{padding:5px 11px;font-size:10px;letter-spacing:2px;color:var(--txd);border-bottom:1px solid var(--bd);flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+#ftm{flex:1;overflow-y:auto;padding:3px 0}
+#fpv{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#fpvtb{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+#fpvtb .fp{font-family:var(--mono);font-size:11px;color:var(--txd);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fpvc{flex:1;overflow:auto;padding:12px 17px;font-family:var(--mono);font-size:11px;line-height:1.7;white-space:pre-wrap;color:var(--tx);word-break:break-all}
+
+/* ── Feedback ─────────────────────────────────────────── */
+#p-fb{flex-direction:column;padding:16px 26px;overflow-y:auto}
+.fbg{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:14px;margin-top:14px}
+.fbc{background:var(--bg1);border:1px solid var(--bd);border-radius:var(--R);padding:14px 16px;display:flex;flex-direction:column;gap:9px;transition:border-color .18s}
+.fbc:hover{border-color:rgba(0,229,255,.28)}
+.fbc.done{border-left:3px solid var(--g)}
+.fbc.run {border-left:3px solid var(--c);animation:pulse 2s infinite}
+.fbc.fail{border-left:3px solid var(--r)}
+.fbch{display:flex;align-items:center;justify-content:space-between}
+.fbct{font-size:13px;color:var(--wh);font-family:var(--mono)}
+.fbcb{font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:9px;background:var(--bg3);color:var(--txd);border:1px solid var(--bd)}
+.fbcb.done{background:rgba(0,255,136,.09);color:var(--g);border-color:var(--g)}
+.fbcb.run {background:rgba(0,229,255,.09);color:var(--c);border-color:var(--c)}
+.fbcb.fail{background:rgba(255,51,85,.09);color:var(--r);border-color:var(--r)}
+.fbcd{font-size:11px;color:var(--txd);line-height:1.5}
+.fbff{display:flex;flex-direction:column;gap:5px}
+.fbf{display:flex;align-items:center;gap:7px}
+.fbf label{font-size:10px;color:var(--txd);min-width:115px;font-family:var(--mono)}
+.fbf input{flex:1;background:var(--bg2);border:1px solid var(--bd);color:var(--tx);padding:3px 7px;border-radius:var(--R);font-family:var(--mono);font-size:11px;outline:none}
+.fbfa{display:flex;gap:7px}
+#fblog{background:var(--bg1);border:1px solid var(--bd);border-radius:var(--R);padding:10px;height:150px;overflow-y:auto;font-family:var(--mono);font-size:11px;margin-top:14px;flex-shrink:0}
+
+/* ── Settings ─────────────────────────────────────────── */
+#p-set{flex-direction:column;padding:26px 38px;overflow-y:auto}
+
+/* ── Statusbar ───────────────────────────────────────── */
+#stb{height:22px;background:var(--bg1);border-top:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:18px;flex-shrink:0}
+.sbi{font-size:10px;font-family:var(--mono);color:var(--txd);display:flex;align-items:center;gap:5px}
+#tk{flex:1;overflow:hidden;white-space:nowrap;position:relative}
+#tki{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--txd);animation:tks 0s linear infinite}
+@keyframes tks{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── Empty / misc ────────────────────────────────────── */
+.es{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--txd)}
+.es .ei{font-size:40px;opacity:.28} .es .et{font-size:13px} .es .sub{font-size:11px;font-family:var(--mono)}
+#toast{position:fixed;bottom:34px;right:18px;z-index:1000;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--R);padding:9px 15px;font-size:12px;color:var(--tx);font-family:var(--mono);opacity:0;transform:translateY(8px);transition:all .22s;max-width:370px;pointer-events:none}
+#toast.on{opacity:1;transform:translateY(0)}
+#toast.ok{border-color:var(--g);color:var(--g)}
+#toast.er{border-color:var(--r);color:var(--r)}
+#scan{position:fixed;inset:0;pointer-events:none;z-index:9998;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);opacity:.6}
+#drop-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,20,40,.82);border:2px dashed var(--c);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;opacity:0;pointer-events:none;transition:opacity .15s}
+#drop-overlay.on{opacity:1;pointer-events:all}
+#drop-overlay .di{font-size:48px;line-height:1}
+#drop-overlay .dt{font-size:18px;color:var(--c);font-family:var(--mono);letter-spacing:2px}
+#drop-overlay .ds{font-size:11px;color:var(--txd);font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div id="scan"></div>
+<div id="drop-overlay">
+  <div class="di">⬇</div>
+  <div class="dt">DROP TO OPEN</div>
+  <div class="ds">PDB · FASTA · GenBank · Config · Log</div>
+</div>
+<div id="app">
+
+<!-- Titlebar -->
+<div id="tb">
+  <div class="logo">GENOMO<em>PIPE</em><span style="font-size:8px;letter-spacing:1px;color:#0d2540;margin-left:10px;font-family:var(--mono);user-select:none">by Cole James Ditzler</span></div>
+  <div id="tb-status">IDLE</div>
+</div>
+
+<div id="ws">
+<!-- Nav -->
+<nav id="nav">
+  <button class="nb on" data-tab="cfg"  >⚙<span class="tip">CONFIGURE</span></button>
+  <button class="nb"    data-tab="run"  >▶<span class="tip">RUN</span></button>
+  <div class="ns"></div>
+  <button class="nb"    data-tab="str"  >🔬<span class="tip">STRUCTURES</span></button>
+  <button class="nb"    data-tab="seq"  >🧬<span class="tip">SEQUENCES</span></button>
+  <button class="nb"    data-tab="pla"  >🧫<span class="tip">PLASMIDS</span></button>
+  <button class="nb"    data-tab="bl"   >💥<span class="tip">BLAST</span></button>
+  <div class="ns"></div>
+  <button class="nb"    data-tab="fil"  >📁<span class="tip">FILES</span></button>
+  <button class="nb"    data-tab="fb"   >🔄<span class="tip">FEEDBACK</span></button>
+  <div class="ns"></div>
+  <button class="nb"    data-tab="set"  >⚙<span class="tip">SETTINGS</span></button>
+</nav>
+
+<!-- Sidebar tree -->
+<div id="sb">
+  <div class="sbh"><span>RUN DIRECTORY</span><button id="sb-ref">↻</button></div>
+  <div id="sb-tree"></div>
+</div>
+
+<!-- Content -->
+<div id="ct">
+
+  <!-- Configure -->
+  <div id="p-cfg" class="pnl on">
+    <div class="pt">PIPELINE CONFIGURATION</div>
+    <div class="sh">ORGANISM &amp; OUTPUT</div>
+    <div class="fr"><label>Organism Name / TaxID</label><input id="c-org"  class="inp" type="text" placeholder="Taraxacum officinale"></div>
+    <div class="fr"><label>Output Directory</label><input id="c-out"  class="inp" type="text"><button class="ib" id="b-out">Browse</button></div>
+    <div class="fr"><label>Config File (.yaml/.json/.txt)</label><input id="c-cfg"  class="inp" type="text" placeholder="Optional — overrides fields"><button class="ib" id="b-cfg">Browse</button></div>
+    <div class="sh">ANNOTATION OPTIONS</div>
+    <div class="tr"><label class="tog"><input id="c-euk" type="checkbox"><span class="tsl"></span></label><label for="c-euk">Eukaryotic Organism (use BRAKER)</label></div>
+    <div class="tr"><label class="tog"><input id="c-rna" type="checkbox"><span class="tsl"></span></label><label for="c-rna">Auto-download RNA-Seq from SRA</label></div>
+    <div class="fr"><label>BAM File (optional)</label><input id="c-bam"  class="inp" type="text" placeholder="Path to existing RNA-Seq BAM"><button class="ib" id="b-bam">Browse</button></div>
+    <div class="sh">PIPELINE CONTROL</div>
+    <div class="tr"><label class="tog"><input id="c-frc" type="checkbox"><span class="tsl"></span></label><label for="c-frc">Force re-run (clear all checkpoints)</label></div>
+    <div class="ar">
+      <button class="bp" id="b-run">▶  RUN PIPELINE</button>
+      <button class="bs" id="b-load">↓  LOAD RESULTS</button>
+      <button class="bs" id="b-browse">📁 BROWSE RESULTS</button>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <div id="p-run" class="pnl">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="pt" style="margin:0">PIPELINE EXECUTION</span>
+      <div style="display:flex;gap:7px">
+        <button class="sm" id="b-asc">Auto-scroll: ON</button>
+        <button class="sm" id="b-clr">Clear</button>
+        <button class="sm r" id="b-kill">■ KILL</button>
+      </div>
+    </div>
+    <div>
+      <div class="pbb"><div class="pbf" id="pbf"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--txd);font-family:var(--mono);margin-bottom:5px">
+        <span id="p-lbl">Waiting...</span><span id="p-pct">0%</span>
+      </div>
+      <div class="sps" id="sps">
+        <span class="sp" data-s="fetch">Genome Fetch</span>
+        <span class="sp" data-s="qc">QC</span>
+        <span class="sp" data-s="mask">RepeatMask</span>
+        <span class="sp" data-s="ann">Annotate</span>
+        <span class="sp" data-s="ext">Proteins</span>
+        <span class="sp" data-s="rfd">RFdiffusion</span>
+        <span class="sp" data-s="mpnn">ProteinMPNN</span>
+        <span class="sp" data-s="cf">ColabFold</span>
+        <span class="sp" data-s="bl">BLAST</span>
+        <span class="sp" data-s="mc">MoClo</span>
+      </div>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <!-- Structures -->
+  <div id="p-str" class="pnl">
+    <div class="pdbl">
+      <div class="sbh">PDB FILES</div>
+      <div class="pdbl-i" id="pdbl-i"><div class="es"><div class="ei">🔬</div><div class="et">No structures loaded</div></div></div>
+    </div>
+    <div id="svw">
+      <div id="vtabs"></div>
+      <div id="vtb">
+        <button class="sm" id="b-back-str" title="Go back (Escape)">← Back</button>
+        <span class="sep"></span>
+        <select id="v-sty"><option value="cartoon">Cartoon</option><option value="stick">Stick</option><option value="sphere">Sphere</option><option value="surface">Surface</option></select>
+        <select id="v-col"><option value="spectrum">Spectrum</option><option value="chain">Chain</option><option value="ss">Sec. Structure</option><option value="bfactor">pLDDT / B-factor</option></select>
+        <span class="sep"></span>
+        <button class="sm" id="b-fit" title="Fit to view (R)">Fit</button>
+        <button class="sm" id="b-spin" title="Toggle spin (F)">Spin</button>
+        <button class="sm" id="b-png" title="Export PNG (X)">PNG</button>
+        <div style="flex:1;min-width:8px"></div>
+        <button class="sm a" id="b-pymol" title="Open in PyMol">PyMol</button>
+        <button class="sm a" id="b-vmd" title="Open in VMD">VMD</button>
+        <button class="sm a" id="b-chim" title="Open in ChimeraX">ChimeraX</button>
+        <button class="sm" id="b-rpdb" title="Reveal in file manager">Reveal</button>
+      </div>
+      <div id="mol"></div>
+      <div id="vkeys">Drag: rotate · Right-drag / Shift+drag: pan · Scroll: zoom · WASD/QE: rotate · R: reset · F: spin · X: screenshot · Esc: back</div>
+    </div>
+  </div>
+
+  <!-- Sequences -->
+  <div id="p-seq" class="pnl">
+    <div class="seql">
+      <div class="sbh">FASTA FILES</div>
+      <div class="seql-i" id="seql-i"><div class="es"><div class="ei">🧬</div><div class="et">No sequences loaded</div></div></div>
+    </div>
+    <div id="seqv">
+      <div id="sqtb">
+        <span style="font-size:10px;color:var(--txd);font-family:var(--mono)" id="sq-fn">—</span>
+        <input type="text" id="sq-srch" placeholder="Search..." />
+        <button class="sm" id="b-cpseq">Copy All</button>
+        <div style="flex:1"></div>
+        <button class="sm g" id="b-jalv">Open in JalView</button>
+        <button class="sm" id="b-rfa">Reveal</button>
+      </div>
+      <div id="sqct"><div class="es"><div class="ei">🧬</div><div class="et">Select a FASTA file</div></div></div>
+    </div>
+  </div>
+
+  <!-- Plasmids -->
+  <div id="p-pla" class="pnl">
+    <div class="gbl">
+      <div class="sbh">GENBANK FILES</div>
+      <div class="gbl-i" id="gbl-i"><div class="es"><div class="ei">🧫</div><div class="et">No plasmids loaded</div></div></div>
+    </div>
+    <div id="gbv">
+      <div id="gbtb">
+        <span style="font-size:10px;color:var(--txd);font-family:var(--mono)" id="gb-fn">—</span>
+        <div style="flex:1"></div>
+        <button class="sm a" id="b-snap">Open in SnapGene</button>
+        <button class="sm" id="b-rgb">Reveal</button>
+      </div>
+      <div id="gbct"><div class="es"><div class="ei">🧫</div><div class="et">Select a GenBank file</div></div></div>
+    </div>
+  </div>
+
+  <!-- BLAST -->
+  <div id="p-bl" class="pnl">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <span class="pt" style="margin:0">BLAST RESULTS</span>
+      <span id="bl-cnt" style="font-size:11px;font-family:var(--mono);color:var(--txd)">0 hits</span>
+    </div>
+    <div id="blfr">
+      <input type="text" id="bl-flt" placeholder="Filter by query / function / organism..." />
+      <select id="bl-srt"><option value="evalue">Sort: E-value</option><option value="pident">Sort: %ID</option><option value="query">Sort: Query</option></select>
+    </div>
+    <div id="bltw"><div class="es"><div class="ei">💥</div><div class="et">No BLAST results loaded</div></div></div>
+  </div>
+
+  <!-- Files -->
+  <div id="p-fil" class="pnl">
+    <!-- Address bar -->
+    <div id="fb-bar">
+      <button id="fb-back" disabled title="Back">←</button>
+      <button id="fb-up" title="Up one level">↑</button>
+      <input id="fb-addr" type="text" placeholder="Enter path…" spellcheck="false">
+      <button id="fb-go">Go</button>
+      <button id="fb-browse-btn">Browse…</button>
+    </div>
+    <div id="fb-split">
+      <div id="ftp">
+        <div id="fb-dir-hdr"><span>CONTENTS</span><div style="display:flex;align-items:center;gap:7px"><span id="fb-count" style="color:var(--txd);font-size:10px"></span><button id="fb-view-toggle" style="background:var(--bg3);border:1px solid var(--bd);color:var(--txd);padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px;font-family:var(--mono);transition:all .12s" title="Toggle flat / tree view">TREE</button></div></div>
+        <div id="ftm"></div>
+      </div>
+      <div id="fpv">
+        <div id="fpvtb">
+          <span class="fp" id="fp-path">No file selected</span>
+          <button class="sm" id="b-prev-rev">Reveal</button>
+          <button class="sm" id="b-prev-open">Open With…</button>
+        </div>
+        <div id="fpvc"><div class="es"><div class="ei">📄</div><div class="et">Select a file to preview</div><div class="sub">PDB · FASTA · GB · LOG · TXT · TSV</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div id="p-fb" class="pnl">
+    <div class="pt">FEEDBACK LOOPS</div>
+    <div class="fbg" id="fbg"></div>
+    <div style="margin-top:13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <span style="font-size:10px;letter-spacing:2px;color:var(--txd)">FEEDBACK LOG</span>
+      <button class="sm r" id="b-kfb">■ KILL</button>
+    </div>
+    <div id="fblog"></div>
+  </div>
+
+  <!-- Settings -->
+  <div id="p-set" class="pnl">
+    <div class="pt">SETTINGS</div>
+    <div class="sh">PATHS</div>
+    <div class="fr"><label>Conda profile.sh</label><input id="s-conda"   class="inp" type="text"></div>
+    <div class="fr"><label>Scripts Directory</label><input id="s-scr"    class="inp" type="text"><button class="ib" id="b-sscr">Browse</button></div>
+    <div class="fr"><label>Default Output Dir</label><input id="s-out"   class="inp" type="text"><button class="ib" id="b-sout">Browse</button></div>
+    <div class="fr"><label>GeneMark Bin Dir</label><input id="s-gm"     class="inp" type="text"></div>
+    <div class="sh">APPEARANCE</div>
+    <div class="fr"><label>UI Font</label><input id="s-font" class="inp" type="text" placeholder="'Comic Sans MS', sans-serif"><button class="ib" id="b-font-apply">Apply</button></div>
+    <div style="font-size:10px;color:var(--txd);font-family:var(--mono);margin:-6px 0 10px 178px">Any CSS font-family value · default: 'Comic Sans MS', sans-serif</div>
+    <div class="sh">EXTERNAL TOOLS</div>
+    <div class="fr"><label>JalView Command</label><input id="s-jalv"    class="inp" type="text" placeholder="jalview"></div>
+    <div class="fr"><label>SnapGene Viewer</label><input id="s-snap"    class="inp" type="text" placeholder="snapgene-viewer"></div>
+    <div class="fr"><label>PyMol Command</label><input id="s-pymol"     class="inp" type="text" placeholder="pymol"></div>
+    <div class="fr"><label>VMD Command</label><input id="s-vmd"         class="inp" type="text" placeholder="vmd"></div>
+    <div class="fr"><label>ChimeraX Command</label><input id="s-chim"   class="inp" type="text" placeholder="chimerax"></div>
+    <div class="ar"><button class="bp" id="b-saveset">Save Settings</button></div>
+  </div>
+
+</div><!-- #ct -->
+</div><!-- #ws -->
+
+<!-- Statusbar -->
+<div id="stb">
+  <div class="sbi" id="sb-dir">📁 No run loaded</div>
+  <div class="sbi" id="sb-pip">Pipeline: idle</div>
+  <div id="tk"><div id="tki">GENOMOPIPE — Genome to Design Pipeline Interface</div></div>
+</div>
+
+</div><!-- #app -->
+<div id="toast"></div>
+
+<script>
+  // 3DMol shim — full library must be bundled as 3Dmol-min.js
+  if (typeof $3Dmol === 'undefined') window.$3Dmol = null;
+</script>
+<script src="renderer.js"></script>
+</body>
+</html>
