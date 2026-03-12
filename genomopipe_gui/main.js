@@ -235,7 +235,7 @@ ipcMain.on('run-pipeline', (event, args) => {
     parts.push(`--genemark_path "${s.genemarkPath}"`);
     fullCmd = `source "${s.condaProfile}" && conda activate braker_env && python "${orchestrator}" ${parts.join(' ')}`;
   } else {
-    const parts = [`"${organism}"`, `"${outDir}"`];
+    const parts = [`"${organism}"`, `"${outDir}"`, isEukaryote ? 'true' : 'false'];
     if (isEukaryote) parts.push('true');
     if (bam)         parts.push(`--bam="${bam}"`);
     if (autoRnaseq)  parts.push('--auto_rnaseq');
