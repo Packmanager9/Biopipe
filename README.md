@@ -1,6 +1,6 @@
 # Genomopipe
 
-An end-to-end automated pipeline that takes an organism name and produces computationally designed protein structures and lab-ready plasmid assembly files — from raw genome fetching through annotation, backbone design, sequence design, structure prediction, MoClo Golden Gate cloning design, and a suite of iterative feedback loops that feed design results back into earlier stages to improve quality. A native desktop GUI (Genomopipe App) provides a full graphical interface for configuring, launching, monitoring, and exploring results.
+An end-to-end automated pipeline that takes an organism name and produces computationally designed protein structures and lab-ready plasmid assembly files - from raw genome fetching through annotation, backbone design, sequence design, structure prediction, MoClo Golden Gate cloning design, and a suite of iterative feedback loops that feed design results back into earlier stages to improve quality. A native desktop GUI (Genomopipe App) provides a full graphical interface for configuring, launching, monitoring, and exploring results.
 
 ---
 
@@ -78,16 +78,16 @@ An end-to-end automated pipeline that takes an organism name and produces comput
 
 | Script | Language | Role |
 |---|---|---|
-| `genomopipe.py` | Python | **Master orchestrator** — single entry point for the full pipeline |
-| `genome_to_design.sh` | Bash | Phase 1 — genome fetch through structure prediction (Steps 1–8) |
+| `genomopipe.py` | Python | **Master orchestrator** - single entry point for the full pipeline |
+| `genome_to_design.sh` | Bash | Phase 1 - genome fetch through structure prediction (Steps 1–8) |
 | `genome_fetch.sh` | Bash | Called by genome_to_design.sh; NCBI genome download with fallback chain |
-| `plasmid_design_moclo_v3.py` | Python | Phase 2 (Step 9) — MoClo Golden Gate plasmid design |
-| `feedback1_colabfold_to_rfdiffusion.sh` | Bash | FB1 — exploit best ColabFold hits as RFdiffusion motifs |
-| `feedback2_plddt_mpnn_resample.py` | Python | FB2 — resample ProteinMPNN for low-pLDDT designs |
-| `feedback3_blast_to_braker.sh` | Bash | FB3 — enrich BRAKER hints with BLAST hit sequences |
-| `feedback4_domesticated_cds_revalidate.py` | Python | FB4 — re-validate domesticated CDSs with ColabFold |
-| `feedback5_designed_proteins_to_annotation.sh` | Bash | FB5 — use validated designs as annotation hints |
-| `feedback6_blast_taxonomy_rerun.py` | Python | FB6 — correct OrthoDB partition based on BLAST taxonomy |
+| `plasmid_design_moclo_v3.py` | Python | Phase 2 (Step 9) - MoClo Golden Gate plasmid design |
+| `feedback1_colabfold_to_rfdiffusion.sh` | Bash | FB1 - exploit best ColabFold hits as RFdiffusion motifs |
+| `feedback2_plddt_mpnn_resample.py` | Python | FB2 - resample ProteinMPNN for low-pLDDT designs |
+| `feedback3_blast_to_braker.sh` | Bash | FB3 - enrich BRAKER hints with BLAST hit sequences |
+| `feedback4_domesticated_cds_revalidate.py` | Python | FB4 - re-validate domesticated CDSs with ColabFold |
+| `feedback5_designed_proteins_to_annotation.sh` | Bash | FB5 - use validated designs as annotation hints |
+| `feedback6_blast_taxonomy_rerun.py` | Python | FB6 - correct OrthoDB partition based on BLAST taxonomy |
 
 FB6 is integrated into the orchestrator. FB1–FB5 are run as standalone scripts; they share the same config format and run directory conventions.
 
@@ -107,7 +107,7 @@ Required for the orchestrator and all Python feedback scripts:
 
 ```bash
 pip install pyyaml biopython pydna
-# Optional — substantially improves CDS domestication quality in Step 9:
+# Optional - substantially improves CDS domestication quality in Step 9:
 pip install dnachisel[reports]
 ```
 
@@ -184,7 +184,7 @@ source ~/miniconda3/etc/profile.d/conda.sh
 # 4. Install Python dependencies
 pip install pyyaml biopython pydna
 
-# 5. Download GeneMark license key — place .gm_key in $HOME
+# 5. Download GeneMark license key - place .gm_key in $HOME
 # https://genemark.bme.gatech.edu/license_download.cgi
 
 # 6. Download RFdiffusion model weights
@@ -220,15 +220,15 @@ The app has a vertical icon sidebar on the left for tab navigation, a persistent
 
 The main launch panel. Set organism name, output directory, and optional config file, then choose annotation options (eukaryote mode, auto RNA-Seq download, BAM file) and pipeline control flags (force re-run). Three action buttons:
 
-- **RUN PIPELINE** — launches the pipeline in the background; switches to the Run tab automatically
-- **LOAD RESULTS** — loads an existing completed or in-progress run from the output directory
-- **BROWSE RESULTS** — opens an OS folder picker to load results from any path
+- **RUN PIPELINE** - launches the pipeline in the background; switches to the Run tab automatically
+- **LOAD RESULTS** - loads an existing completed or in-progress run from the output directory
+- **BROWSE RESULTS** - opens an OS folder picker to load results from any path
 
 #### ▶ Run
 
 Live pipeline execution view. Shows a progress bar, per-step status pills (colour-coded: active cyan / done green / failed red), and a full scrolling log with syntax highlighting (`[START]` cyan, `[DONE]` green, `[FAIL]` red, `[WARN]` amber, `[SKIP]` grey). Auto-scroll can be toggled. A kill button sends SIGTERM to the running process.
 
-The sidebar auto-refreshes every 4 seconds while running, showing new checkpoint sentinel files as they appear. The app also detects pipelines launched externally from the terminal — hit ↻ on the sidebar or load the output directory and it begins live-refreshing automatically. While the pipeline is actively running, `.failed` sentinel files are shown in grey rather than red to indicate they may be stale leftovers from a previous `--force` run.
+The sidebar auto-refreshes every 4 seconds while running, showing new checkpoint sentinel files as they appear. The app also detects pipelines launched externally from the terminal - hit ↻ on the sidebar or load the output directory and it begins live-refreshing automatically. While the pipeline is actively running, `.failed` sentinel files are shown in grey rather than red to indicate they may be stale leftovers from a previous `--force` run.
 
 #### 🔬 Structures
 
@@ -280,11 +280,11 @@ Parses `blast_results.txt` into a filterable, sortable table. Columns: Query, Su
 
 A full file browser with address bar navigation.
 
-- **Address bar** — always shows the current directory; type any path and press Enter or Go to jump directly to it
-- **← Back** — browser-style history navigation through all directories visited this session
-- **↑ Up** — navigate to parent directory
-- **Browse…** — OS folder picker
-- **TREE / FLAT toggle** — switch between flat navigator mode (click a folder to enter it, address bar updates) and tree mode (folders expand inline with ▶ / ▼ chevrons). The button glows cyan while tree mode is active.
+- **Address bar** - always shows the current directory; type any path and press Enter or Go to jump directly to it
+- **← Back** - browser-style history navigation through all directories visited this session
+- **↑ Up** - navigate to parent directory
+- **Browse…** - OS folder picker
+- **TREE / FLAT toggle** - switch between flat navigator mode (click a folder to enter it, address bar updates) and tree mode (folders expand inline with ▶ / ▼ chevrons). The button glows cyan while tree mode is active.
 
 Clicking a file previews it in the right pane. PDB, FASTA, and GenBank files route to their specialised viewers (Structures / Sequences / Plasmids tabs). TSV and CSV files render as a sortable table. All other text files display as plain text.
 
@@ -314,13 +314,13 @@ Persistent settings for all paths and external tool commands.
 
 ### Recommended: run everything with the orchestrator
 
-`genomopipe.py` is the single entry point. It runs Phases 1–3 in order, handles resumability via per-phase sentinel files, and automatically passes config values to each downstream script. All keys can be supplied in a config file (YAML, JSON, or plain text), as CLI flags, or both — CLI flags always win.
+`genomopipe.py` is the single entry point. It runs Phases 1–3 in order, handles resumability via per-phase sentinel files, and automatically passes config values to each downstream script. All keys can be supplied in a config file (YAML, JSON, or plain text), as CLI flags, or both - CLI flags always win.
 
 ```bash
 # Full run from a config file
 python genomopipe.py genomopipe_config.yaml
 
-# Minimal CLI invocation — prokaryote
+# Minimal CLI invocation - prokaryote
 python genomopipe.py --organism "Escherichia coli" --output_dir ./output
 
 # Eukaryote with automatic RNA-Seq download
@@ -335,7 +335,7 @@ python genomopipe.py genomopipe_config.yaml \
     --organism "Arabidopsis thaliana" \
     --fb6_dry_run
 
-# Resume an interrupted run — completed phases are skipped automatically
+# Resume an interrupted run - completed phases are skipped automatically
 python genomopipe.py genomopipe_config.yaml
 
 # Skip Phase 1 (use an existing completed run)
@@ -355,14 +355,14 @@ python genomopipe.py genomopipe_config.yaml --reset
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `config` | positional | — | YAML / JSON / .txt config file |
-| `--organism` | string | — | Organism name (quoted) or NCBI TaxID |
+| `config` | positional | - | YAML / JSON / .txt config file |
+| `--organism` | string | - | Organism name (quoted) or NCBI TaxID |
 | `--output_dir` | path | `./output` | Root output directory |
 | `--scripts_dir` | path | `.` | Directory containing all pipeline scripts |
-| `--email` | string | — | NCBI Entrez email (required for FB6 taxonomy lookups) |
+| `--email` | string | - | NCBI Entrez email (required for FB6 taxonomy lookups) |
 | `--is_eukaryote` | bool | `false` | `true` for eukaryotes |
 | `--genemark_path` | path | `~/genemark-etp-full/.../bin` | GeneMark bin dir |
-| `--bam` | path | — | Existing RNA-Seq BAM for BRAKER hints |
+| `--bam` | path | - | Existing RNA-Seq BAM for BRAKER hints |
 | `--auto_rnaseq` | flag | false | Auto-download RNA-Seq from SRA |
 | `--force` | flag | false | Clear genome_to_design.sh checkpoints and restart Phase 1 |
 | `--moclo_standard` | string | `marillonnet` | `marillonnet` \| `cidar` \| `jump` |
@@ -370,7 +370,7 @@ python genomopipe.py genomopipe_config.yaml --reset
 | `--enzyme_level1` | string | `BpiI` | Level 1 assembly enzyme |
 | `--perform_domestication` | bool | `true` | Run CDS domestication in Phase 2 |
 | `--output_prefix` | string | `moclo_plasmid` | Output file stem for Phase 2 |
-| `--genes` | paths | — | CDS FASTA paths; auto-discovered from split_seqs if omitted |
+| `--genes` | paths | - | CDS FASTA paths; auto-discovered from split_seqs if omitted |
 | `--fb6_min_hits` | int | `5` | FB6: min BLAST hits needed to trigger partition switch |
 | `--fb6_evalue_cutoff` | float | `1e-5` | FB6: max e-value for a hit to count |
 | `--dry_run` | flag | false | FB6: audit only, do not re-run BRAKER |
@@ -405,32 +405,32 @@ python plasmid_design_moclo_v3.py config.yaml   # or .json or .txt
 
 **Feedback loops (all accept config file or CLI flags):**
 ```bash
-# FB1 — motif re-scaffolding
+# FB1 - motif re-scaffolding
 ./feedback1_colabfold_to_rfdiffusion.sh config.yaml
 ./feedback1_colabfold_to_rfdiffusion.sh \
     --run_dir=./output/latest --top_n=3 --iterations=2
 
-# FB2 — pLDDT-gated resampling
+# FB2 - pLDDT-gated resampling
 python feedback2_plddt_mpnn_resample.py config.yaml
 python feedback2_plddt_mpnn_resample.py \
     --run_dir=./output/latest --plddt_pass=75 --max_iterations=3
 
-# FB3 — enriched BRAKER hints
+# FB3 - enriched BRAKER hints
 ./feedback3_blast_to_braker.sh config.yaml
 ./feedback3_blast_to_braker.sh \
     --run_dir=./output/latest --evalue_cutoff=1e-10 --pident_min=40
 
-# FB4 — domestication re-validation
+# FB4 - domestication re-validation
 python feedback4_domesticated_cds_revalidate.py config.yaml
 python feedback4_domesticated_cds_revalidate.py \
     --run_dir=./output/latest --plddt_drop_warn=5.0 --plddt_drop_fail=15.0
 
-# FB5 — designs as annotation hints
+# FB5 - designs as annotation hints
 ./feedback5_designed_proteins_to_annotation.sh config.yaml
 ./feedback5_designed_proteins_to_annotation.sh \
     --run_dir=./output/latest --plddt_min=75
 
-# FB6 — taxonomy partition correction (also run by orchestrator)
+# FB6 - taxonomy partition correction (also run by orchestrator)
 python feedback6_blast_taxonomy_rerun.py config.yaml
 python feedback6_blast_taxonomy_rerun.py \
     --run_dir=./output/latest --min_hits=5 --dry_run
@@ -458,7 +458,7 @@ Runs `bbduk.sh` to trim adapter sequences. Falls back to the raw sanitized genom
 #### Step 2b. Repeat Masking
 Runs `RepeatModeler` to build a de novo repeat library, then `RepeatMasker` to soft-mask the genome. Skipped automatically for genomes under 1 Mbp. Critical for eukaryotes (failure halts the pipeline when `is_eukaryote=true`).
 
-For large genomes (>500 Mbp) this step takes 12–30 hours. Progress is logged to `logs/pipeline.log` via `[REPEATMASK]` markers at each phase (BuildDatabase, RepeatModeler start, round headers, library size, RepeatMasker start, masked percentage). Full unfiltered RepeatModeler output — including the per-second countdown — goes to `logs/repeatmodeler_detail.log` so nothing is lost.
+For large genomes (>500 Mbp) this step takes 12–30 hours. Progress is logged to `logs/pipeline.log` via `[REPEATMASK]` markers at each phase (BuildDatabase, RepeatModeler start, round headers, library size, RepeatMasker start, masked percentage). Full unfiltered RepeatModeler output - including the per-second countdown - goes to `logs/repeatmodeler_detail.log` so nothing is lost.
 
 #### Step 3. Gene Annotation
 Eukaryotes use BRAKER (Augustus + GeneMark-ETP) with OrthoDB protein hints auto-selected by taxonomic lineage (fungi, viridiplantae, vertebrata, arthropoda, etc.) and optionally supplemented with RNA-Seq evidence. The `--auto_rnaseq` mode queries SRA via Entrez, downloads with `prefetch` + `fasterq-dump`, aligns with STAR, and merges BAMs with `samtools`. Falls back to proteins-only if no RNA-Seq is found. If BRAKER fails due to insufficient intron evidence, the pipeline automatically retries in `--esmode`. Prokaryotes use Prokka.
@@ -483,15 +483,15 @@ Renames ColabFold output files using the putative function name from BLAST resul
 
 ---
 
-### Phase 2: MoClo Plasmid Design (`plasmid_design_moclo_v3.py`) — Step 9
+### Phase 2: MoClo Plasmid Design (`plasmid_design_moclo_v3.py`) - Step 9
 
 Takes designed sequences from `proteinmpnn_out/split_seqs/` and produces lab-ready Golden Gate assembly files.
 
-1. **CDS domestication** — silently removes internal restriction enzyme recognition sites using synonymous codon substitution scored by host codon frequency. Uses DNA Chisel if installed, otherwise a built-in heuristic fallback.
-2. **Fusion-site addition** — wraps each part with the correct 4-bp MoClo overhangs for the chosen standard (Marillonnet, CIDAR, or JUMP).
-3. **In-silico assembly** — assembles promoter → RBS → CDS → terminator → backbone and verifies a valid circular product.
-4. **Protocol summary** — prints suggested thermocycler conditions for the enzyme pair.
-5. **Outputs** — `.gb` GenBank file (SnapGene-ready) and `.fasta` for synthesis ordering, written to `<run_dir>/moclo_plasmids/`.
+1. **CDS domestication** - silently removes internal restriction enzyme recognition sites using synonymous codon substitution scored by host codon frequency. Uses DNA Chisel if installed, otherwise a built-in heuristic fallback.
+2. **Fusion-site addition** - wraps each part with the correct 4-bp MoClo overhangs for the chosen standard (Marillonnet, CIDAR, or JUMP).
+3. **In-silico assembly** - assembles promoter → RBS → CDS → terminator → backbone and verifies a valid circular product.
+4. **Protocol summary** - prints suggested thermocycler conditions for the enzyme pair.
+5. **Outputs** - `.gb` GenBank file (SnapGene-ready) and `.fasta` for synthesis ordering, written to `<run_dir>/moclo_plasmids/`.
 
 When run via the orchestrator, `genes` are auto-discovered from `proteinmpnn_out/split_seqs/` if not explicitly listed in the config.
 
@@ -501,7 +501,7 @@ When run via the orchestrator, `genes` are auto-discovered from `proteinmpnn_out
 
 Each loop reads outputs from earlier phases, feeds information back upstream, and writes results into a dedicated `feedback<N>_loop/` subdirectory. Each loop is independently resumable. FB6 runs automatically as part of the orchestrator; FB1–FB5 are run as standalone scripts or from the GUI Feedback tab.
 
-### FB1 — ColabFold → RFdiffusion motif re-scaffolding (`feedback1_colabfold_to_rfdiffusion.sh`)
+### FB1 - ColabFold → RFdiffusion motif re-scaffolding (`feedback1_colabfold_to_rfdiffusion.sh`)
 
 Ranks all ColabFold predictions by mean pLDDT and selects the top-N structures. Each is fed back to RFdiffusion as a fixed motif, with variable-length flanking regions scaffolded around it. ProteinMPNN designs sequences for the new backbones and ColabFold re-evaluates them. Repeats for a configurable number of iterations. The "exploit the best hits" strategy: rather than treating all RFdiffusion designs equally, it focuses redesign effort on structures that already showed high confidence, converging toward better scaffolds with each cycle.
 
@@ -517,9 +517,9 @@ Ranks all ColabFold predictions by mean pLDDT and selects the top-N structures. 
 
 **Outputs:** `feedback1_loop/iteration_<N>/` with new designs, sequences, and structures; `fb1_summary.tsv` comparing original vs. redesigned pLDDT.
 
-### FB2 — pLDDT filter → ProteinMPNN resampling (`feedback2_plddt_mpnn_resample.py`)
+### FB2 - pLDDT filter → ProteinMPNN resampling (`feedback2_plddt_mpnn_resample.py`)
 
-Splits all ColabFold predictions into PASS (mean pLDDT ≥ threshold) and RETRY (below threshold). For RETRY designs, the corresponding RFdiffusion PDB is sent back to ProteinMPNN at a slightly higher sampling temperature to diversify the sequence search. ColabFold re-evaluates the new candidates. Repeats up to `max_iterations`; designs that never pass are flagged as unconverged. The key insight is that a poor ColabFold prediction reflects a bad sequence, not a bad backbone — more diverse sequence sampling often finds a sequence that folds cleanly onto the same scaffold.
+Splits all ColabFold predictions into PASS (mean pLDDT ≥ threshold) and RETRY (below threshold). For RETRY designs, the corresponding RFdiffusion PDB is sent back to ProteinMPNN at a slightly higher sampling temperature to diversify the sequence search. ColabFold re-evaluates the new candidates. Repeats up to `max_iterations`; designs that never pass are flagged as unconverged. The key insight is that a poor ColabFold prediction reflects a bad sequence, not a bad backbone - more diverse sequence sampling often finds a sequence that folds cleanly onto the same scaffold.
 
 | Key | Default | Description |
 |---|---|---|
@@ -531,16 +531,16 @@ Splits all ColabFold predictions into PASS (mean pLDDT ≥ threshold) and RETRY 
 
 **Outputs:** `feedback2_loop/iteration_<N>/`; `fb2_summary.tsv` with design ID, iteration reached, final pLDDT, pass/fail.
 
-### FB3 — BLAST hits → BRAKER re-annotation (`feedback3_blast_to_braker.sh`)
+### FB3 - BLAST hits → BRAKER re-annotation (`feedback3_blast_to_braker.sh`)
 
-Parses `blast_results.txt` for high-confidence hits and fetches the full subject sequences from NCBI. De-duplicates and combines these with the original OrthoDB hint file, then re-runs BRAKER with the enriched protein hint set. Compares gene counts and mean protein length between the original and enriched annotations and writes a diff report. The initial OrthoDB partition covers a broad taxonomic group; BLAST hits from designed sequences reveal which specific protein families are actually present — families that may be under-represented in the generic partition. Adding them as direct hints can recover missed exons and fix gene merges and splits in exactly the protein classes being designed.
+Parses `blast_results.txt` for high-confidence hits and fetches the full subject sequences from NCBI. De-duplicates and combines these with the original OrthoDB hint file, then re-runs BRAKER with the enriched protein hint set. Compares gene counts and mean protein length between the original and enriched annotations and writes a diff report. The initial OrthoDB partition covers a broad taxonomic group; BLAST hits from designed sequences reveal which specific protein families are actually present - families that may be under-represented in the generic partition. Adding them as direct hints can recover missed exons and fix gene merges and splits in exactly the protein classes being designed.
 
 | Key | Default | Description |
 |---|---|---|
 | `evalue_cutoff` | 1e-10 | Max e-value for a BLAST hit to be included as a hint |
 | `pident_min` | 40 | Min percent identity for inclusion |
 | `max_hits_per_query` | 5 | Max subject sequences fetched per query |
-| `bam_file` | — | RNA-Seq BAM to carry forward into re-annotation |
+| `bam_file` | - | RNA-Seq BAM to carry forward into re-annotation |
 
 **Outputs:** `feedback3_loop/blast_subjects.faa`, `enriched_hints.faa`, `braker_enriched/`, `proteins_enriched.faa`, `fb3_annotation_diff.txt`.
 
@@ -552,7 +552,7 @@ rm ./output/latest/.step5_rfdiffusion.done   # and any later checkpoints
 ./genome_to_design.sh "Organism" ./output true   # resumes from Step 5
 ```
 
-### FB4 — Domesticated CDS → ColabFold re-validation (`feedback4_domesticated_cds_revalidate.py`)
+### FB4 - Domesticated CDS → ColabFold re-validation (`feedback4_domesticated_cds_revalidate.py`)
 
 Reads the `.gb` file(s) produced by Step 9 and extracts CDSs that were domesticated. Calculates the number and positions of synonymous changes relative to the pre-domestication source. Runs ColabFold on the domesticated amino acid sequences and compares pLDDT scores against the original Step 6 prediction. Flags sequences where pLDDT dropped more than the configured threshold. Synonymous codon substitutions can alter local mRNA structure and translation rate, occasionally affecting co-translational folding. This loop catches those regressions before a sequence reaches synthesis.
 
@@ -564,21 +564,21 @@ Reads the `.gb` file(s) produced by Step 9 and extracts CDSs that were domestica
 
 **Outputs:** `feedback4_loop/domesticated_seqs/`, `colabfold_dom/`, `fb4_report.tsv` (num_changes, original_pLDDT, dom_pLDDT, delta, flag).
 
-### FB5 — Validated designs → annotation hints (`feedback5_designed_proteins_to_annotation.sh`)
+### FB5 - Validated designs → annotation hints (`feedback5_designed_proteins_to_annotation.sh`)
 
 Filters ColabFold-predicted designed proteins by pLDDT threshold and combines the passing sequences with the original OrthoDB hint file to produce `designed_hints.faa`. This enriched hint set can be used two ways: (a) re-run BRAKER on the *same* organism to recover genes in exactly the protein families represented by the designs; (b) pass as `--prot_seq` when launching a fresh run on a *related* organism, bootstrapping annotation quality with curated high-confidence sequences rather than generic OrthoDB proteins. Optionally triggers the target-organism run automatically via `target_organism`.
 
 | Key | Default | Description |
 |---|---|---|
 | `plddt_min` | 75 | Min pLDDT to include a design as a hint |
-| `target_organism` | — | If set, automatically launch genome_to_design.sh on a new species |
-| `target_output` | — | Output directory for the target organism run |
+| `target_organism` | - | If set, automatically launch genome_to_design.sh on a new species |
+| `target_output` | - | Output directory for the target organism run |
 | `target_eukaryote` | true | Eukaryote flag for the target organism |
 | `include_blast_func` | true | Annotate hint sequences with BLAST function labels |
 
 **Outputs:** `feedback5_loop/designed_hints.faa`, `fb5_manifest.tsv`.
 
-### FB6 — BLAST taxonomy → BRAKER re-run with corrected OrthoDB partition (`feedback6_blast_taxonomy_rerun.py`)
+### FB6 - BLAST taxonomy → BRAKER re-run with corrected OrthoDB partition (`feedback6_blast_taxonomy_rerun.py`)
 
 Parses `blast_results.txt` and fetches the taxonomic lineage of each subject accession. Each accession is assigned to its single most-specific OrthoDB partition keyword using a fixed specificity order. Compares the dominant partition against the one actually used in Step 3 by reading the step log. Partition aliases (e.g. `mammalia` and `vertebrata` both map to slug `Vertebrata`) are resolved before comparison. If a different, more specific partition accumulates ≥ `min_hits` accessions, downloads it, re-runs BRAKER with the corrected hints, runs GTF repair and gffread, and filters proteins. Writes a taxonomy audit report listing per-partition hit counts, original and suggested partitions, and whether a re-run was triggered.
 
@@ -663,7 +663,7 @@ Each feedback loop script uses the same `run_step` mechanism as `genome_to_desig
 
 ## Config File Reference
 
-All scripts accept YAML, JSON, or plain-text `.txt` config files. The orchestrator config covers all phases. All keys are optional — omitted keys fall back to the defaults shown in the tables above. Three ready-to-use example files are included: `genomopipe_config.yaml`, `genomopipe_config.json`, and `genomopipe_config.txt`.
+All scripts accept YAML, JSON, or plain-text `.txt` config files. The orchestrator config covers all phases. All keys are optional - omitted keys fall back to the defaults shown in the tables above. Three ready-to-use example files are included: `genomopipe_config.yaml`, `genomopipe_config.json`, and `genomopipe_config.txt`.
 
 ### YAML (recommended)
 
@@ -833,11 +833,11 @@ output_dir: ./custom_plasmids
 |---|---|---|
 | `output_dir` | `./output` | Root directory for all run subdirectories |
 | `scripts_dir` | `.` | Directory containing all pipeline scripts |
-| `email` | — | NCBI Entrez email (required for FB6) |
-| `organism` | — | Organism name (quoted) or NCBI TaxID |
+| `email` | - | NCBI Entrez email (required for FB6) |
+| `organism` | - | Organism name (quoted) or NCBI TaxID |
 | `is_eukaryote` | `false` | `true` for eukaryotes |
 | `genemark_path` | `~/genemark-etp-full/.../bin` | GeneMark bin directory |
-| `bam` | — | Existing RNA-Seq BAM path |
+| `bam` | - | Existing RNA-Seq BAM path |
 | `auto_rnaseq` | `false` | Auto-download RNA-Seq from SRA |
 | `force` | `false` | Clear genome_to_design.sh checkpoints and restart |
 | `assembly_method` | `GoldenGate` | Assembly strategy |
@@ -881,7 +881,7 @@ output_dir: ./custom_plasmids
 | `MOCLO_PARTS_DIR` | Explicit split_seqs path | Auto-searched under run_dir |
 
 ```bash
-# Default — works automatically after genome_to_design.sh has run once
+# Default - works automatically after genome_to_design.sh has run once
 python plasmid_design_moclo_v3.py config.yaml
 
 # Pipeline outputs are on a different disk
@@ -999,13 +999,13 @@ output/
 
 **Config layering:** The priority chain is always `defaults → config file → CLI flags`. Keep a base config for an organism and override specific keys per experiment on the command line without editing the file.
 
-**Feedback loop ordering:** Run FB2 before FB1 — converging sequences first makes better motifs. Run FB3 and FB6 independently (they address different aspects of annotation quality). Run FB4 after Phase 2 plasmid design. Run FB5 last, once designs are fully validated.
+**Feedback loop ordering:** Run FB2 before FB1 - converging sequences first makes better motifs. Run FB3 and FB6 independently (they address different aspects of annotation quality). Run FB4 after Phase 2 plasmid design. Run FB5 last, once designs are fully validated.
 
 **FB6 dry run first:** Use `fb6_dry_run: true` on the first run with a new organism to read the taxonomy audit before committing to a full BRAKER re-run, which takes as long as the original annotation.
 
 **FB5 cross-species bootstrapping:** If running Genomopipe on multiple related organisms, use FB5's `target_organism` key to automatically seed the second organism's annotation with high-confidence protein designs from the first run.
 
-**RepeatModeler runtime:** On genomes >500 Mbp, RepeatModeler typically runs 15–30 hours across 5–6 rounds before producing a repeat library. This is expected and normal. The pipeline does not hang during this period — check `logs/pipeline.log` for `[REPEATMASK]` progress markers or `logs/repeatmodeler_detail.log` for round-level detail. Use the GUI's live sidebar refresh to watch sentinel files appearing.
+**RepeatModeler runtime:** On genomes >500 Mbp, RepeatModeler typically runs 15–30 hours across 5–6 rounds before producing a repeat library. This is expected and normal. The pipeline does not hang during this period - check `logs/pipeline.log` for `[REPEATMASK]` progress markers or `logs/repeatmodeler_detail.log` for round-level detail. Use the GUI's live sidebar refresh to watch sentinel files appearing.
 
 **Motif scaffolding from the start:** Pre-run ColabFold on `proteins.faa` and place results in `colabfold_pre/` before launching the pipeline to use a known structure as a motif from the very first RFdiffusion run. FB1 automates this iteratively for subsequent cycles.
 
@@ -1017,7 +1017,7 @@ output/
 
 **DNA Chisel:** `pip install dnachisel[reports]` substantially improves CDS domestication quality in Step 9. Without it the built-in heuristic fallback is used.
 
-**Detecting externally-launched runs in the GUI:** The app detects pipelines launched from the terminal. Load the output directory via Browse Results or hit ↻ on the run sidebar — the app detects the active run and begins live-refreshing automatically.
+**Detecting externally-launched runs in the GUI:** The app detects pipelines launched from the terminal. Load the output directory via Browse Results or hit ↻ on the run sidebar - the app detects the active run and begins live-refreshing automatically.
 
 ---
 
@@ -1032,9 +1032,9 @@ mamba install -n braker_env -c bioconda gffread
 
 **BRAKER fails with "less than 1000 introns"** the pipeline automatically retries in `--esmode`. For fragmented genomes, supplement with `--auto_rnaseq`.
 
-**RepeatModeler fails on small genomes** expected — masking is skipped automatically for genomes under 1 Mbp.
+**RepeatModeler fails on small genomes** expected - masking is skipped automatically for genomes under 1 Mbp.
 
-**`consensi.fa` is 0 bytes / RepeatMasker never ran** if the pipeline is still running, this is normal — `consensi.fa` is only written after all RepeatModeler rounds complete, which can take many hours. Do not interrupt. Check `logs/repeatmodeler_detail.log` for round-level progress. If the pipeline has already exited and `consensi.fa` is still empty, RepeatModeler failed silently; check `logs/step2b_repeatmask.log` for error detail.
+**`consensi.fa` is 0 bytes / RepeatMasker never ran** if the pipeline is still running, this is normal - `consensi.fa` is only written after all RepeatModeler rounds complete, which can take many hours. Do not interrupt. Check `logs/repeatmodeler_detail.log` for round-level progress. If the pipeline has already exited and `consensi.fa` is still empty, RepeatModeler failed silently; check `logs/step2b_repeatmask.log` for error detail.
 
 **ColabFold GPU errors** remove `--use-gpu-relax` from the `colabfold_batch` call in Step 6 for CPU-only runs.
 
@@ -1044,9 +1044,9 @@ mamba install -n braker_env -c bioconda gffread
 
 **Part not found in Phase 2** `plasmid_design_moclo_v3.py` reports exactly which directories were searched. Set `MOCLO_PARTS_DIR`, add a `parts_dir` key to the config, or pass a full path in the `genes` list.
 
-**Domestication loop does not converge** install `dnachisel[reports]` — its constraint-satisfaction solver resolves most cases the heuristic fallback cannot handle.
+**Domestication loop does not converge** install `dnachisel[reports]` - its constraint-satisfaction solver resolves most cases the heuristic fallback cannot handle.
 
-**FB2 designs always unconverged** lower `plddt_pass`, increase `resample_n`, or raise `resample_temp`. Some backbones are genuinely difficult to thread — consider running FB1 to redesign those scaffolds before retrying FB2.
+**FB2 designs always unconverged** lower `plddt_pass`, increase `resample_n`, or raise `resample_temp`. Some backbones are genuinely difficult to thread - consider running FB1 to redesign those scaffolds before retrying FB2.
 
 **FB3 / FB6 BRAKER re-run fails** both loops require the same environment variables as `genome_to_design.sh`. Verify `genemark_path` is correct and that the Augustus config directory is writable. Both loops copy it to `~/augustus_config_writable` automatically as a fallback.
 
@@ -1056,7 +1056,7 @@ mamba install -n braker_env -c bioconda gffread
 
 **FB6 always suggests the same partition** if `original_partition` is unknown (BRAKER log not found or not parseable), every partition keyword passes the mismatch check. Verify that `logs/step3_annotate.log` exists and contains the OrthoDB filename pattern. Supply `run_dir` explicitly with `--run_dir` if the log lives elsewhere.
 
-**Phase 2 fails but pipeline continues** Phase 2 is non-critical in the orchestrator — a failure is logged and feedback loops still run. Check `genomopipe_phase2.log` in the output directory for the error.
+**Phase 2 fails but pipeline continues** Phase 2 is non-critical in the orchestrator - a failure is logged and feedback loops still run. Check `genomopipe_phase2.log` in the output directory for the error.
 
 **3DMol not loading in the GUI** the structure viewer requires `3Dmol-min.js` in the `bioforge_app/` directory. Download from https://3dmol.org or install via npm. Without it, a placeholder is shown but all other panels function normally.
 
@@ -1067,7 +1067,7 @@ mamba install -n braker_env -c bioconda gffread
 conda install -n braker_env -c bioconda perl-xml-simple
 ```
 
-**Prokka fails: `needs blastp 2.2 or higher`** Prokka 1.13 has a version-parsing bug — it strips the last digit from the version string, so `2.15` becomes `2.1` which fails the `>= 2.2` check. Two fixes are needed:
+**Prokka fails: `needs blastp 2.2 or higher`** Prokka 1.13 has a version-parsing bug - it strips the last digit from the version string, so `2.15` becomes `2.1` which fails the `>= 2.2` check. Two fixes are needed:
 
 1. Ensure `braker_env`'s blastp symlinks to the base environment's copy (which Prokka parses correctly):
 ```bash
