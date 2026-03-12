@@ -365,16 +365,39 @@ local rm_detail_log="$log_dir/repeatmodeler_detail.log"
 echo "[REPEATMASK] Starting RepeatModeler (full log → $rm_detail_log)"
 echo "[REPEATMASK] This step takes several hours on large genomes — round progress will appear below"
 
-# RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
-#     tee -a "$rm_detail_log" | \
-#     grep -vE '^\s+[0-9]+%\s+completed,\s+[0-9]' | \
-#     grep -vE '^\s*$'
-
+# Pipe structure:
+#   RepeatModeler stdout+stderr
+#     → tee  : full unfiltered copy saved to rm_detail_log
+#     → perl : normalise H:M:S → HH:MM:SS (cosmetic)
+#     → awk  : suppress the per-second "0% completed" countdown lines that
+#              RepeatModeler open-1.0.8 emits throughout all-by-other comparisons
+#              (the percentage never advances until the very end).
+#              Instead, print ONE summary line per minute so the operator knows
+#              the job is still alive and can see the latest ETA estimate.
+#              All other lines (round headers, RECON steps, errors, etc.) pass through.
 RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
     tee -a "$rm_detail_log" | \
     perl -pe 's/\b(\d+):(\d+):(\d+)\b/sprintf("%02d:%02d:%02d",$1,$2,$3)/ge' | \
-    grep -vE '^\s+[0-9]+%\s+completed,\s+[0-9]' | \
-    grep -vE '^\s*$'
+    awk '
+        /^[[:space:]]+[0-9]+%[[:space:]]+completed,/ {
+            suppressed++
+            now = systime()
+            if (now - last_print >= 60) {
+                printf "[REPEATMASK progress] %s  (suppressed %d duplicate line(s))\n", $0, suppressed - 1
+                last_print = now
+                suppressed  = 0
+            }
+            next
+        }
+        /^[[:space:]]*$/ { next }
+        {
+            if (suppressed > 0) {
+                printf "[REPEATMASK progress] (suppressed %d duplicate line(s))\n", suppressed
+                suppressed = 0
+            }
+            print
+        }
+    '
 
 
 local rm_rc=${PIPESTATUS[0]}   # RepeatModeler exit — not grep's
