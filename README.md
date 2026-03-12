@@ -170,9 +170,13 @@ mamba install -c bioconda ncbi-genome-download entrez-direct cd-hit biopython
 chmod +x genome_to_design.sh \
          feedback1_colabfold_to_rfdiffusion.sh \
          feedback3_blast_to_braker.sh \
-         feedback5_designed_proteins_to_annotation.sh
-cp genome_fetch.sh ~/Desktop/favbooks/genome_fetch.sh
-chmod +x ~/Desktop/favbooks/genome_fetch.sh
+         feedback5_designed_proteins_to_annotation.sh \
+         genome_fetch.sh \
+         genomopipe.py \
+         plasmid_design_moclo_v3.py \
+         feedback2_plddt_mpnn_resample.py \
+         feedback4_domesticated_cds_revalidate.py \
+         feedback6_blast_taxonomy_rerun.py
 
 # 2. Install Miniconda if not already present
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -1091,7 +1095,7 @@ ls -la ~/miniconda3/envs/braker_env/bin/blastp
 
 If you use Genomopipe in published work, please cite:
 
-- **Genomopipe**: Ditzler, C.J. (2026). Genomopipe: An automated pipeline from genome annotation to diffusion-based protein structure design (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.18976525
+- **Genomopipe**: Ditzler, C.J. (2026). Genomopipe: An automated pipeline from genome annotation to diffusion-based protein structure design (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.18934145
 
 ```bibtex
 @software{ditzler2026genomopipe,
@@ -1100,8 +1104,8 @@ If you use Genomopipe in published work, please cite:
              to diffusion-based protein structure design},
   year    = {2026},
   version = {v1.0.0},
-  doi     = {10.5281/zenodo.18976525},
-  url     = {https://doi.org/10.5281/zenodo.18976525}
+  doi     = {10.5281/zenodo.18934145},
+  url     = {https://doi.org/10.5281/zenodo.18934145}
 }
 ```
 
