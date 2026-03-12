@@ -1091,7 +1091,7 @@ ls -la ~/miniconda3/envs/braker_env/bin/blastp
 
 If you use Genomopipe in published work, please cite:
 
-- **Genomopipe**: Ditzler, C.J. (2026). Genomopipe: An automated pipeline from genome annotation to diffusion-based protein structure design (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.18934145
+- **Genomopipe**: Ditzler, C.J. (2026). Genomopipe: An automated pipeline from genome annotation to diffusion-based protein structure design (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.18976525
 
 ```bibtex
 @software{ditzler2026genomopipe,
@@ -1100,8 +1100,8 @@ If you use Genomopipe in published work, please cite:
              to diffusion-based protein structure design},
   year    = {2026},
   version = {v1.0.0},
-  doi     = {10.5281/zenodo.18934145},
-  url     = {https://doi.org/10.5281/zenodo.18934145}
+  doi     = {10.5281/zenodo.18976525},
+  url     = {https://doi.org/10.5281/zenodo.18976525}
 }
 ```
 
