@@ -150,9 +150,13 @@ log "START" "$step_name — $description"
 local start_ts
 start_ts=$(date +%s)
 # Capture output to step log; also mirror each line into master log with prefix
-"$fn" 2>&1 | tee -a "$step_log" | while IFS= read -r line; do
-echo "[$(date '+%F %T')] [$step_name] $line" >> "$master_log"
-done
+"$fn" 2>&1 \
+    | tee -a "$step_log" \
+    | tr '\r' '\n' \
+    | grep -v '^[[:space:]]*$' \
+    | while IFS= read -r line; do
+        echo "[$(date '+%F %T')] [$step_name] $line" >> "$master_log"
+      done
 local exit_code="${PIPESTATUS[0]}"
 local elapsed=$(( $(date +%s) - start_ts ))
 if [ "$exit_code" -eq 0 ]; then
@@ -184,12 +188,34 @@ log "INFO" "Working dir: $(pwd)"
 # ─────────────────────────────────────────────
 # STEP 1 — Genome fetch [CRITICAL]
 # ─────────────────────────────────────────────
+# _step1_genome_fetch() { 
+# # Wrap genome_fetch with 'script' to simulate a TTY, preventing hangs in non-interactive environments
+# # Assumes 'script' (from util-linux) is available; if not, install via apt/yum or conda install -c conda-forge util-linux
+# log "DEBUG" "Running genome_fetch with simulated TTY to avoid potential hangs"
+# script -q -c "${HOME}/Desktop/favbooks/genome_fetch.sh \"$organism\"" /dev/null # Use absolute path here
+# }
 _step1_genome_fetch() {
-# Wrap genome_fetch with 'script' to simulate a TTY, preventing hangs in non-interactive environments
-# Assumes 'script' (from util-linux) is available; if not, install via apt/yum or conda install -c conda-forge util-linux
-log "DEBUG" "Running genome_fetch with simulated TTY to avoid potential hangs"
-script -q -c "${HOME}/Desktop/favbooks/genome_fetch.sh \"$organism\"" /dev/null # Use absolute path here
-}
+    # Resolve genome_fetch.sh: prefer /usr/local/bin (installed), then same dir as this script
+    local fetch_script
+    if command -v genome_fetch.sh >/dev/null 2>&1; then
+        fetch_script="genome_fetch.sh"
+    else
+        local script_dir
+        script_dir="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" && pwd)"
+        fetch_script="$script_dir/genome_fetch.sh"
+    fi
+    if [ ! -f "$fetch_script" ] && ! command -v "$fetch_script" >/dev/null 2>&1; then
+        log "HALT" "genome_fetch.sh not found in PATH or alongside genome_to_design.sh"
+        return 1
+    fi
+    log "DEBUG" "Running genome_fetch with simulated TTY to avoid potential hangs"
+    if command -v script >/dev/null 2>&1; then
+        script -q -c "$fetch_script \"$organism\"" /dev/null
+    else
+        log "WARN" "'script' not found — running genome_fetch.sh directly (no TTY simulation)"
+        bash "$fetch_script" "$organism"
+    fi
+} 
 run_step "step1_genome_fetch" true "Fetch reference genome for '$organism'" _step1_genome_fetch
 # Decompress — runs every time (idempotent, fast, not worth checkpointing)
 # Note: gunzip is standard bash, but keeping conda activate if bioenv has specific version/dependencies
@@ -339,10 +365,18 @@ local rm_detail_log="$log_dir/repeatmodeler_detail.log"
 echo "[REPEATMASK] Starting RepeatModeler (full log → $rm_detail_log)"
 echo "[REPEATMASK] This step takes several hours on large genomes — round progress will appear below"
 
+# RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
+#     tee -a "$rm_detail_log" | \
+#     grep -vE '^\s+[0-9]+%\s+completed,\s+[0-9]' | \
+#     grep -vE '^\s*$'
+
 RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
     tee -a "$rm_detail_log" | \
+    perl -pe 's/\b(\d+):(\d+):(\d+)\b/sprintf("%02d:%02d:%02d",$1,$2,$3)/ge' | \
     grep -vE '^\s+[0-9]+%\s+completed,\s+[0-9]' | \
     grep -vE '^\s*$'
+
+
 local rm_rc=${PIPESTATUS[0]}   # RepeatModeler exit — not grep's
 
 if [ $rm_rc -ne 0 ]; then

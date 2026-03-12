@@ -143,7 +143,12 @@ DEFAULTS: Dict[str, Any] = {
     "skip_phase1":   False,
     "skip_phase2":   False,
     "skip_feedback": False,
-    "run_fb6":       True,
+    "run_fb1": True,
+    "run_fb2": True,
+    "run_fb3": True,
+    "run_fb4": True,
+    "run_fb5": True,
+    "run_fb6": True,
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -499,62 +504,79 @@ def run_feedback_loops(cfg: Dict[str, Any], run_dir: Path) -> None:
         log("SKIP", "All feedback loops — --skip_feedback set")
         return
 
-    # ── Feedback Loop 6 ───────────────────────────────────────────────────
-    if cfg["run_fb6"]:
-        if _is_done(run_dir, "feedback6"):
-            log("SKIP", "Feedback Loop 6 already complete")
+    # ── Helper ────────────────────────────────────────────────────────────────
+    def _run_loop(sentinel: str, label: str, script_name: str, lang: str,
+                  extra_args: Optional[List[str]] = None) -> bool:
+        """Run one feedback loop script. Returns True on success."""
+        if _is_done(run_dir, sentinel):
+            log("SKIP", f"{label} already complete")
+            return True
+        try:
+            script = _find_script(cfg["scripts_dir"], script_name)
+        except FileNotFoundError as e:
+            log("SKIP", f"{label} — {e}")
+            return False
+
+        cmd = ([sys.executable, str(script)] if lang == "py"
+               else ["bash", str(script)])
+        cmd += ["--run_dir", str(run_dir)]
+        if extra_args:
+            cmd += extra_args
+
+        loop_log = run_dir / f"genomopipe_{sentinel}.log"
+        log("START", f"{label}")
+        log("INFO",  f"  Command: {' '.join(cmd)}")
+        with open(loop_log, "w") as lf:
+            result = subprocess.run(cmd, stdout=lf, stderr=subprocess.STDOUT)
+        if result.returncode != 0:
+            log("FAIL", f"{label} exited {result.returncode}. See {loop_log}")
+            return False
+        _mark_done(run_dir, sentinel)
+        log("DONE", f"{label} complete")
+        return True
+
+    # ── FB1: ColabFold quality → RFdiffusion resample ─────────────────────────
+    if cfg.get("run_fb1", True):
+        _run_loop("feedback1", "Feedback Loop 1 — ColabFold → RFdiffusion",
+                  "feedback1_colabfold_to_rfdiffusion.sh", "sh")
+
+    # ── FB2: pLDDT / ProteinMPNN resample ─────────────────────────────────────
+    if cfg.get("run_fb2", True):
+        _run_loop("feedback2", "Feedback Loop 2 — pLDDT / ProteinMPNN resample",
+                  "feedback2_plddt_mpnn_resample.py", "py")
+
+    # ── FB3: BLAST taxonomy → BRAKER re-annotation ────────────────────────────
+    if cfg.get("run_fb3", True):
+        _run_loop("feedback3", "Feedback Loop 3 — BLAST → BRAKER re-run",
+                  "feedback3_blast_to_braker.sh", "sh")
+
+    # ── FB4: Domesticated CDS revalidation ────────────────────────────────────
+    if cfg.get("run_fb4", True):
+        _run_loop("feedback4", "Feedback Loop 4 — domesticated CDS revalidation",
+                  "feedback4_domesticated_cds_revalidate.py", "py")
+
+    # ── FB5: Designed proteins → annotation ───────────────────────────────────
+    if cfg.get("run_fb5", True):
+        _run_loop("feedback5", "Feedback Loop 5 — designed proteins → annotation",
+                  "feedback5_designed_proteins_to_annotation.sh", "sh")
+
+    # ── FB6: BLAST taxonomy → OrthoDB partition fix ───────────────────────────
+    if cfg.get("run_fb6", True):
+        blast_file = run_dir / "blast_results.txt"
+        if not blast_file.exists():
+            log("SKIP", "Feedback Loop 6 — blast_results.txt not found. Skipping.")
         else:
-            blast_file = run_dir / "blast_results.txt"
-            if not blast_file.exists():
-                log("SKIP",
-                    "Feedback Loop 6 — blast_results.txt not found "
-                    "(Step 7 may not have completed). Skipping.")
-            else:
-                script = _find_script(cfg["scripts_dir"],
-                                      "feedback6_blast_taxonomy_rerun.py")
-                fb6_cfg = _build_fb6_config(cfg, run_dir)
-
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yaml", delete=False, dir=run_dir
-                ) as tmp:
-                    if HAS_YAML:
-                        yaml.dump(fb6_cfg, tmp, default_flow_style=False)
-                    else:
-                        json.dump(fb6_cfg, tmp, indent=2)
-                    tmp_path = tmp.name
-
-                log("START", "Feedback Loop 6 — BLAST taxonomy → BRAKER re-run")
-                log("INFO",  f"  Config: {tmp_path}")
-                if cfg["fb6_dry_run"]:
-                    log("INFO", "  dry_run=true: will report but not re-run BRAKER")
-
-                fb6_log = run_dir / "genomopipe_feedback6.log"
-                with open(fb6_log, "w") as lf:
-                    result = subprocess.run(
-                        [sys.executable, str(script), tmp_path],
-                        stdout=lf, stderr=subprocess.STDOUT
-                    )
-
-                if result.returncode != 0:
-                    log("FAIL",
-                        f"Feedback Loop 6 exited {result.returncode}. "
-                        f"See {fb6_log}")
-                else:
-                    _mark_done(run_dir, "feedback6")
-                    log("DONE", "Feedback Loop 6 complete")
-
-                    # Surface the audit report path
-                    audit = run_dir / "feedback6_loop" / "feedback6_taxonomy_audit.txt"
-                    if audit.exists():
-                        log("INFO", f"  Audit report: {audit}")
-
-    # ── Future loops — add here as they are implemented ───────────────────
-    # Example:
-    # if cfg["run_fb2"]:
-    #     if _is_done(run_dir, "feedback2"):
-    #         log("SKIP", "Feedback Loop 2 already complete")
-    #     else:
-    #         ...
+            _run_loop(
+                "feedback6", "Feedback Loop 6 — BLAST taxonomy re-run",
+                "feedback6_blast_taxonomy_rerun.py", "py",
+                extra_args=[
+                    "--min_hits",      str(cfg["fb6_min_hits"]),
+                    "--evalue_cutoff", str(cfg["fb6_evalue_cutoff"]),
+                ] + (["--dry_run"] if cfg["fb6_dry_run"] else [])
+            )
+            audit = run_dir / "feedback6_loop" / "feedback6_taxonomy_audit.txt"
+            if audit.exists():
+                log("INFO", f"  Audit report: {audit}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
