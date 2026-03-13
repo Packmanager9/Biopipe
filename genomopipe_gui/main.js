@@ -197,10 +197,68 @@ ipcMain.on('launch-tool', (event, { tool, filePath }) => {
   });
 });
 
+// ─── Resume detection ─────────────────────────────────────────────────────────
+ipcMain.handle('resume-detect', (_, outputDir) => {
+  try {
+    const dir = outputDir || loadSettings().outputDir;
+    if (!dir || !fs.existsSync(dir)) return { ok: false, error: 'Output directory not found' };
+
+    let runDir = null;
+    const link = path.join(dir, 'latest');
+    try {
+      if (fs.existsSync(link) && fs.lstatSync(link).isSymbolicLink())
+        runDir = fs.realpathSync(link);
+    } catch (_) {}
+    if (!runDir) {
+      const runs = fs.readdirSync(dir)
+        .filter(n => n.startsWith('run_'))
+        .map(n => ({ name: n, mtime: fs.statSync(path.join(dir, n)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      if (runs.length) runDir = path.join(dir, runs[0].name);
+    }
+    if (!runDir || !fs.existsSync(runDir))
+      return { ok: false, error: 'No run directory found under ' + dir };
+
+    const sentinel = name => fs.existsSync(path.join(runDir, `.genomopipe_${name}.done`));
+    const skipPhase1   = sentinel('phase1');
+    const skipPhase2   = sentinel('phase2');
+    const skipFeedback = ['feedback1','feedback2','feedback3','feedback4','feedback5','feedback6']
+      .every(f => sentinel(f));
+
+    let organism = '';
+    const logPath = path.join(runDir, 'logs', 'pipeline.log');
+    if (fs.existsSync(logPath)) {
+      const lines = fs.readFileSync(logPath, 'utf8').split('\n').slice(0, 120);
+      for (const ln of lines) {
+        const m = ln.match(/organism[:\s"]+([A-Za-z][^\]"\n,]+)/i);
+        if (m) { organism = m[1].trim(); break; }
+      }
+    }
+    if (!organism) {
+      const cfgFiles = fs.readdirSync(runDir).filter(f => /\.(yaml|yml|json)$/.test(f));
+      for (const cf of cfgFiles) {
+        const txt = fs.readFileSync(path.join(runDir, cf), 'utf8');
+        const m = txt.match(/organism[:\s"]+([A-Za-z][^\n"]+)/i);
+        if (m) { organism = m[1].trim().replace(/[",]/g, ''); break; }
+      }
+    }
+
+    const parts = [];
+    if (skipPhase1)  parts.push('Phase 1 ✓');
+    if (!skipPhase1) parts.push('Phase 1 pending');
+    if (skipPhase2)  parts.push('Phase 2 ✓');
+    if (!skipPhase2) parts.push('Phase 2 pending');
+
+    return { ok: true, runDir, outputRoot: dir, organism, skipPhase1, skipPhase2, skipFeedback, summary: parts.join(' · ') };
+  } catch (e) { return { ok: false, error: e.message }; }
+});
+
 // ─── Run pipeline ─────────────────────────────────────────────────────────────
 ipcMain.on('run-pipeline', (event, args) => {
   const s = loadSettings();
-  const { organism, outputDir, isEukaryote, bam, autoRnaseq, force, configFile } = args;
+  const { organism, outputDir, isEukaryote, bam, autoRnaseq, force, configFile,
+          skipPhase1, skipPhase2, skipFeedback,
+          codonOptimize, expressionHost, codonOptimizeMethod } = args;
   const scriptsDir = s.scriptsDir || '';
   const outDir     = outputDir || s.outputDir;
 
@@ -231,6 +289,12 @@ ipcMain.on('run-pipeline', (event, args) => {
     if (bam)        parts.push(`--bam="${bam}"`);
     if (autoRnaseq) parts.push('--auto_rnaseq');
     if (force)      parts.push('--force');
+    if (skipPhase1)   parts.push('--skip_phase1');
+    if (skipPhase2)   parts.push('--skip_phase2');
+    if (skipFeedback) parts.push('--skip_feedback');
+    if (codonOptimize)       parts.push('--codon_optimize');
+    if (expressionHost)      parts.push(`--expression_host "${expressionHost}"`);
+    if (codonOptimizeMethod) parts.push(`--codon_optimize_method "${codonOptimizeMethod}"`);
     parts.push(`--scripts_dir "${scriptsDir}"`);
     parts.push(`--genemark_path "${s.genemarkPath}"`);
     fullCmd = `source "${s.condaProfile}" && conda activate braker_env && python "${orchestrator}" ${parts.join(' ')}`;

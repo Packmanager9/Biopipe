@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('api', {
   launchTool:  (tool, filePath) => ipcRenderer.send('launch-tool', { tool, filePath }),
   onToolError: (cb) => ipcRenderer.on('tool-error', (_, msg) => cb(msg)),
 
+  resumeDetect: (dir) => ipcRenderer.invoke('resume-detect', dir),
+
   // Pipeline
   runPipeline:    (args) => ipcRenderer.send('run-pipeline', args),
   killPipeline:   ()     => ipcRenderer.send('kill-pipeline'),

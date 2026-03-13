@@ -358,12 +358,31 @@ table.blt td.ev{color:var(--g)} table.blt td.pi{color:var(--c)} table.blt td.fn{
     <div class="tr"><label class="tog"><input id="c-euk" type="checkbox"><span class="tsl"></span></label><label for="c-euk">Eukaryotic Organism (use BRAKER)</label></div>
     <div class="tr"><label class="tog"><input id="c-rna" type="checkbox"><span class="tsl"></span></label><label for="c-rna">Auto-download RNA-Seq from SRA</label></div>
     <div class="fr"><label>BAM File (optional)</label><input id="c-bam"  class="inp" type="text" placeholder="Path to existing RNA-Seq BAM"><button class="ib" id="b-bam">Browse</button></div>
+    <div class="sh">CODON OPTIMIZATION</div>
+    <div class="tr"><label class="tog"><input id="c-cdo" type="checkbox"><span class="tsl"></span></label><label for="c-cdo">Enable codon optimization (re-encode CDSs before domestication)</label></div>
+    <div class="fr" id="c-cdo-opts" style="display:none">
+      <label>Expression Host</label>
+      <select id="c-host" class="inp" style="flex:1">
+        <option value="e_coli">E. coli K-12</option>
+        <option value="s_cerevisiae">S. cerevisiae (Yeast)</option>
+        <option value="h_sapiens">H. sapiens / CHO (Mammalian)</option>
+        <option value="p_pastoris">P. pastoris (Pichia)</option>
+        <option value="b_subtilis">B. subtilis</option>
+      </select>
+      <label style="margin-left:10px">Method</label>
+      <select id="c-cdm" class="inp" style="flex:1">
+        <option value="auto">auto (DNA Chisel → python-codon-tables → built-in)</option>
+        <option value="max_frequency">max_frequency (fastest)</option>
+        <option value="dnachisel">dnachisel (requires install)</option>
+      </select>
+    </div>
     <div class="sh">PIPELINE CONTROL</div>
     <div class="tr"><label class="tog"><input id="c-frc" type="checkbox"><span class="tsl"></span></label><label for="c-frc">Force re-run (clear all checkpoints)</label></div>
     <div class="ar">
       <button class="bp" id="b-run">▶  RUN PIPELINE</button>
       <button class="bs" id="b-load">↓  LOAD RESULTS</button>
       <button class="bs" id="b-browse">📁 BROWSE RESULTS</button>
+      <button class="bs" id="b-resume">⟳  RESUME</button>
     </div>
   </div>
 
