@@ -36,6 +36,21 @@ genes:
 proteinmpnn_out/split_seqs/design_0_seq0.fasta
 proteinmpnn_out/split_seqs/design_1_seq3.fasta
 
+# ── Codon optimization ────────────────────────────────────────────────────────
+# Applied in Phase 2, before restriction-site domestication.
+# Protein sequences are back-translated; DNA sequences are re-encoded.
+# Set codon_optimize to true and set expression_host to your target organism.
+#
+# expression_host options:
+#   e_coli | s_cerevisiae | h_sapiens | p_pastoris | b_subtilis
+#
+# codon_optimize_method options:
+#   auto (default) | max_frequency | dnachisel
+#
+codon_optimize: false
+expression_host: e_coli
+codon_optimize_method: auto
+
 # ── Phase 3 ──────────────────────────────────────────────────────────────────
 fb6_min_hits: 5
 fb6_evalue_cutoff: 1e-5

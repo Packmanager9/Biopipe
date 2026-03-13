@@ -87,6 +87,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -100,6 +101,58 @@ try:
     HAS_YAML = True
 except ImportError:
     HAS_YAML = False
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Active subprocess tracker — used by the signal handler to kill child trees
+# ─────────────────────────────────────────────────────────────────────────────
+
+_active_proc: Optional["subprocess.Popen[bytes]"] = None  # type: ignore[type-arg]
+
+
+def _signal_handler(signum: int, frame: object) -> None:
+    """On SIGINT/SIGTERM: kill the active subprocess process group, then exit."""
+    global _active_proc
+    sig_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
+    log("SIGNAL", f"{sig_name} received — terminating active subprocess and exiting")
+    if _active_proc is not None:
+        try:
+            # Kill the entire process group spawned with start_new_session=True
+            os.killpg(os.getpgid(_active_proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+        try:
+            _active_proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(os.getpgid(_active_proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+    sys.exit(128 + signum)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Subprocess helper — runs cmd in a new session (own process group) so that
+# SIGTERM/SIGKILL sent via os.killpg() reaches every grandchild process.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _run_subprocess(cmd: List[str], log_file: "Path") -> int:
+    """
+    Run *cmd*, stream stdout+stderr to *log_file*, and return the exit code.
+    The child is started in its own session (start_new_session=True) so the
+    signal handler can kill the whole tree with os.killpg().
+    """
+    global _active_proc
+    with open(log_file, "w") as lf:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=lf,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,   # new process group → killpg works
+        )
+        _active_proc = proc
+        proc.wait()
+        _active_proc = None
+    return proc.returncode
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Defaults
@@ -133,6 +186,11 @@ DEFAULTS: Dict[str, Any] = {
     "perform_domestication": True,
     "output_prefix":         "moclo_plasmid",
     "genes":                 [],
+
+    # Codon optimization (Phase 2 — applied before domestication)
+    "codon_optimize":        False,    # true → re-encode CDSs for expression_host
+    "expression_host":       "e_coli", # e_coli | s_cerevisiae | h_sapiens | p_pastoris | b_subtilis
+    "codon_optimize_method": "auto",   # auto | max_frequency | dnachisel
 
     # Phase 3 — feedback loops
     "fb6_min_hits":      5,
@@ -238,6 +296,8 @@ def build_config(args: argparse.Namespace) -> Dict[str, Any]:
         "output_prefix":         args.output_prefix,
         "fb6_min_hits":          args.fb6_min_hits,
         "fb6_evalue_cutoff":     args.fb6_evalue_cutoff,
+        "expression_host":       args.expression_host,
+        "codon_optimize_method": args.codon_optimize_method,
     }
     for k, v in cli_map.items():
         if v is not None:
@@ -252,11 +312,12 @@ def build_config(args: argparse.Namespace) -> Dict[str, Any]:
     if args.dry_run:        cfg["fb6_dry_run"]    = True
     if args.no_fb6:         cfg["run_fb6"]        = False
     if args.genes:          cfg["genes"]          = args.genes
+    if args.codon_optimize: cfg["codon_optimize"] = True
 
     # Normalise booleans that may have come in as strings from a txt config
     for bool_key in ("is_eukaryote", "auto_rnaseq", "force",
                      "perform_domestication", "skip_phase1", "skip_phase2",
-                     "skip_feedback", "fb6_dry_run", "run_fb6"):
+                     "skip_feedback", "fb6_dry_run", "run_fb6", "codon_optimize"):
         cfg[bool_key] = _to_bool(cfg[bool_key])
 
     cfg["output_dir"] = str(Path(cfg["output_dir"]).expanduser().resolve())
@@ -371,14 +432,13 @@ def run_phase1(cfg: Dict[str, Any], run_dir_ref: List[Optional[Path]]) -> Path:
     log("INFO",  f"  Command: {' '.join(cmd)}")
 
     phase1_log = output_dir / "genomopipe_phase1.log"
-    with open(phase1_log, "w") as lf:
-        result = subprocess.run(cmd, stdout=lf, stderr=subprocess.STDOUT)
+    returncode = _run_subprocess(cmd, phase1_log)
 
-    if result.returncode != 0:
+    if returncode != 0:
         log("FAIL",
-            f"Phase 1 exited {result.returncode}. "
+            f"Phase 1 exited {returncode}. "
             f"See {phase1_log} and {output_dir}/latest/logs/pipeline.log")
-        sys.exit(result.returncode)
+        sys.exit(returncode)
 
     run_dir = _resolve_latest_run(output_dir)
     if run_dir is None:
@@ -425,6 +485,10 @@ def _build_moclo_config(cfg: Dict[str, Any], run_dir: Path) -> Dict[str, Any]:
         "run_dir":               str(run_dir),
         "output_dir":            str(run_dir / "moclo_plasmids"),
         "genes":                 genes,
+        # Codon optimization
+        "codon_optimize":        cfg.get("codon_optimize", False),
+        "expression_host":       cfg.get("expression_host", "e_coli"),
+        "codon_optimize_method": cfg.get("codon_optimize_method", "auto"),
     }
     if cfg.get("backbone"):
         moclo["backbone"] = cfg["backbone"]
@@ -468,14 +532,10 @@ def run_phase2(cfg: Dict[str, Any], run_dir: Path) -> None:
     log("INFO",  f"  Genes:  {len(moclo_cfg['genes'])} file(s)")
 
     phase2_log = run_dir / "genomopipe_phase2.log"
-    with open(phase2_log, "w") as lf:
-        result = subprocess.run(
-            [sys.executable, str(script), tmp_path],
-            stdout=lf, stderr=subprocess.STDOUT
-        )
+    returncode = _run_subprocess([sys.executable, str(script), tmp_path], phase2_log)
 
-    if result.returncode != 0:
-        log("FAIL", f"Phase 2 exited {result.returncode}. See {phase2_log}")
+    if returncode != 0:
+        log("FAIL", f"Phase 2 exited {returncode}. See {phase2_log}")
         # Non-critical — continue to feedback loops
     else:
         _mark_done(run_dir, "phase2")
@@ -526,10 +586,9 @@ def run_feedback_loops(cfg: Dict[str, Any], run_dir: Path) -> None:
         loop_log = run_dir / f"genomopipe_{sentinel}.log"
         log("START", f"{label}")
         log("INFO",  f"  Command: {' '.join(cmd)}")
-        with open(loop_log, "w") as lf:
-            result = subprocess.run(cmd, stdout=lf, stderr=subprocess.STDOUT)
-        if result.returncode != 0:
-            log("FAIL", f"{label} exited {result.returncode}. See {loop_log}")
+        returncode = _run_subprocess(cmd, loop_log)
+        if returncode != 0:
+            log("FAIL", f"{label} exited {returncode}. See {loop_log}")
             return False
         _mark_done(run_dir, sentinel)
         log("DONE", f"{label} complete")
@@ -682,6 +741,14 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Output file stem (default: moclo_plasmid)")
     g2.add_argument("--genes",                 metavar="PATH", nargs="+",
                     help="One or more CDS FASTA paths; auto-discovered if omitted")
+    g2.add_argument("--codon_optimize",        action="store_true",
+                    help="Enable codon optimization / back-translation before domestication")
+    g2.add_argument("--expression_host",       metavar="HOST",
+                    help="Target expression host for codon optimization. "
+                         "Choices: e_coli, s_cerevisiae, h_sapiens, p_pastoris, b_subtilis "
+                         "(default: e_coli)")
+    g2.add_argument("--codon_optimize_method", metavar="METHOD",
+                    help="auto | max_frequency | dnachisel (default: auto)")
 
     # ── Phase 3 ───────────────────────────────────────────────────────────
     g3 = p.add_argument_group("Phase 3 — Feedback loops")
@@ -720,6 +787,10 @@ def main() -> None:
     args   = parser.parse_args()
     cfg    = build_config(args)
 
+    # Register signal handlers so Ctrl+C / kill propagates to child processes
+    signal.signal(signal.SIGINT,  _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+
     # Set up logging before anything else
     output_dir = Path(cfg["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -735,6 +806,8 @@ def main() -> None:
     log("INFO", f"  skip_phase1 : {cfg['skip_phase1']}")
     log("INFO", f"  skip_phase2 : {cfg['skip_phase2']}")
     log("INFO", f"  skip_feedback:{cfg['skip_feedback']}")
+    log("INFO", f"  codon_optimize: {cfg['codon_optimize']}")
+    log("INFO", f"  expression_host:{cfg['expression_host']}")
     log("INFO", f"  run_fb6     : {cfg['run_fb6']}")
     log("INFO", f"  fb6_dry_run : {cfg['fb6_dry_run']}")
     log("INFO", "=" * 68)

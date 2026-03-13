@@ -15,14 +15,15 @@ An end-to-end automated pipeline that takes an organism name and produces comput
 7. [The Orchestrator (genomopipe.py)](#the-orchestrator-genomopipepy)
 8. [Running Scripts Individually](#running-scripts-individually)
 9. [Pipeline Steps In Detail](#pipeline-steps-in-detail)
-10. [Feedback Loops](#feedback-loops)
-11. [Resumability and Checkpoints](#resumability-and-checkpoints)
-12. [Config File Reference](#config-file-reference)
-13. [Path Resolution](#path-resolution)
-14. [Output Structure](#output-structure)
-15. [Tips and Notes](#tips-and-notes)
-16. [Troubleshooting](#troubleshooting)
-17. [Citations](#citations)
+10. [Codon Optimization](#codon-optimization)
+11. [Feedback Loops](#feedback-loops)
+12. [Resumability and Checkpoints](#resumability-and-checkpoints)
+13. [Config File Reference](#config-file-reference)
+14. [Path Resolution](#path-resolution)
+15. [Output Structure](#output-structure)
+16. [Tips and Notes](#tips-and-notes)
+17. [Troubleshooting](#troubleshooting)
+18. [Citations](#citations)
 
 ---
 
@@ -109,6 +110,8 @@ Required for the orchestrator and all Python feedback scripts:
 pip install pyyaml biopython pydna
 # Optional - substantially improves CDS domestication quality in Step 9:
 pip install dnachisel[reports]
+# Optional - provides authoritative NCBI codon usage tables for all organisms:
+pip install python-codon-tables
 ```
 
 All Python scripts require Python 3.7+ and run outside any Conda environment; they invoke Conda environments internally via `conda run`.
@@ -375,6 +378,9 @@ python genomopipe.py genomopipe_config.yaml --reset
 | `--perform_domestication` | bool | `true` | Run CDS domestication in Phase 2 |
 | `--output_prefix` | string | `moclo_plasmid` | Output file stem for Phase 2 |
 | `--genes` | paths | - | CDS FASTA paths; auto-discovered from split_seqs if omitted |
+| `--codon_optimize` | flag | false | Enable codon optimization / back-translation before domestication |
+| `--expression_host` | string | `e_coli` | Target expression host: `e_coli`, `s_cerevisiae`, `h_sapiens`, `p_pastoris`, `b_subtilis` |
+| `--codon_optimize_method` | string | `auto` | `auto` \| `max_frequency` \| `dnachisel` |
 | `--fb6_min_hits` | int | `5` | FB6: min BLAST hits needed to trigger partition switch |
 | `--fb6_evalue_cutoff` | float | `1e-5` | FB6: max e-value for a hit to count |
 | `--dry_run` | flag | false | FB6: audit only, do not re-run BRAKER |
@@ -491,13 +497,97 @@ Renames ColabFold output files using the putative function name from BLAST resul
 
 Takes designed sequences from `proteinmpnn_out/split_seqs/` and produces lab-ready Golden Gate assembly files.
 
-1. **CDS domestication** - silently removes internal restriction enzyme recognition sites using synonymous codon substitution scored by host codon frequency. Uses DNA Chisel if installed, otherwise a built-in heuristic fallback.
-2. **Fusion-site addition** - wraps each part with the correct 4-bp MoClo overhangs for the chosen standard (Marillonnet, CIDAR, or JUMP).
-3. **In-silico assembly** - assembles promoter → RBS → CDS → terminator → backbone and verifies a valid circular product.
-4. **Protocol summary** - prints suggested thermocycler conditions for the enzyme pair.
-5. **Outputs** - `.gb` GenBank file (SnapGene-ready) and `.fasta` for synthesis ordering, written to `<run_dir>/moclo_plasmids/`.
+1. **Protein detection** - automatically detects whether input sequences are amino-acid (protein FASTA from ProteinMPNN) or DNA. Protein inputs are always back-translated to DNA before downstream steps.
+2. **Codon optimization** *(new — if `codon_optimize: true`)* - re-encodes CDSs for the target expression host before restriction-site removal. For protein inputs this is the back-translation step itself; for DNA inputs it applies synonymous substitutions genome-wide. See [Codon Optimization](#codon-optimization) for full details.
+3. **CDS domestication** - silently removes internal restriction enzyme recognition sites using synonymous codon substitution scored by host codon frequency. Uses DNA Chisel if installed, otherwise a built-in heuristic fallback.
+4. **Fusion-site addition** - wraps each part with the correct 4-bp MoClo overhangs for the chosen standard (Marillonnet, CIDAR, or JUMP).
+5. **In-silico assembly** - assembles promoter → RBS → CDS → terminator → backbone and verifies a valid circular product.
+6. **Protocol summary** - prints suggested thermocycler conditions for the enzyme pair.
+7. **Outputs** - `.gb` GenBank file (SnapGene-ready) and `.fasta` for synthesis ordering, written to `<run_dir>/moclo_plasmids/`.
 
 When run via the orchestrator, `genes` are auto-discovered from `proteinmpnn_out/split_seqs/` if not explicitly listed in the config.
+
+---
+
+## Codon Optimization
+
+Codon optimization recodes each designed CDS using synonymous codons preferred by the target expression host. This is distinct from CDS domestication (which only removes restriction sites): codon optimization considers the entire sequence, maximising expression potential by selecting codons that match the host's translational machinery.
+
+### When to use it
+
+Enable codon optimization whenever the designed protein will be expressed in a host other than the organism it was originally designed against — or any time you want maximum expression yield. It is particularly important when:
+
+- Expressing a designed protein in *E. coli* after designing from a eukaryotic genome
+- Targeting *P. pastoris* or CHO cells for secreted protein production
+- Minimising the use of rare codons that slow ribosomes or cause frameshifts
+
+### How it works
+
+The codon optimization step runs **before** CDS domestication in Phase 2. The pipeline:
+
+1. **Detects sequence type** — protein FASTA from ProteinMPNN is back-translated directly to optimized DNA; DNA inputs are re-encoded via synonymous substitution.
+2. **Selects codons** from the host's codon frequency table using one of three methods (see below).
+3. **Passes the optimized DNA** to the existing domestication step, which then removes any restriction sites the new codon choices may have introduced.
+
+### Methods
+
+| Method | When used | Description |
+|---|---|---|
+| `auto` | default | Tries DNA Chisel first, then python-codon-tables, then built-in tables |
+| `max_frequency` | explicit | Always uses the most-frequent codon per amino acid from the host table |
+| `dnachisel` | explicit | Forces DNA Chisel's constraint-satisfaction solver (error if not installed) |
+
+**DNA Chisel** (`pip install dnachisel[reports]`) gives the best results because it simultaneously satisfies codon-optimization objectives and restriction-site avoidance constraints in a single pass, trading slightly lower average codon frequency for globally fewer conflicts.
+
+**python-codon-tables** (`pip install python-codon-tables`) uses the most recent NCBI codon usage database tables and supports all organisms with sufficient NCBI entries. Recommended over the built-in tables when your expression host is not one of the five pre-loaded organisms.
+
+**Built-in tables** (always available, no extra install) cover five common expression hosts derived from Kazusa codon usage database values.
+
+### Supported expression hosts
+
+| Key | Organism | Use case |
+|---|---|---|
+| `e_coli` | *Escherichia coli* K-12 | Bacterial expression (default) |
+| `s_cerevisiae` | *Saccharomyces cerevisiae* | Yeast expression, secretion |
+| `h_sapiens` | *Homo sapiens* | Human / CHO mammalian expression |
+| `p_pastoris` | *Komagataella phaffii* (Pichia) | High-yield secreted protein |
+| `b_subtilis` | *Bacillus subtilis* 168 | Gram-positive / spore-display |
+
+Common aliases are also accepted (e.g. `ecoli`, `yeast`, `human`, `cho`, `pichia`).
+
+For any other organism, install `python-codon-tables` and pass the NCBI species name as `expression_host` — the library will fetch the correct table automatically.
+
+### Configuration
+
+```yaml
+codon_optimize:        true         # false by default
+expression_host:       e_coli       # see table above
+codon_optimize_method: auto         # auto | max_frequency | dnachisel
+```
+
+```bash
+# CLI equivalents
+python genomopipe.py config.yaml \
+    --codon_optimize \
+    --expression_host s_cerevisiae \
+    --codon_optimize_method max_frequency
+```
+
+### Combining with domestication
+
+Both steps are applied in sequence and are independently controllable:
+
+```yaml
+codon_optimize:        true    # re-encode for host first
+perform_domestication: true    # then remove restriction sites
+expression_host:       e_coli
+```
+
+When both are enabled and DNA Chisel is installed, the `auto` method runs a single unified pass that satisfies codon-optimization objectives and restriction-site avoidance constraints simultaneously, which is more efficient and typically produces fewer synonymous changes overall.
+
+### Feedback Loop 4 interaction
+
+FB4 (`feedback4_domesticated_cds_revalidate.py`) re-validates domesticated sequences with ColabFold to catch any pLDDT regressions caused by synonymous changes. This is equally relevant after codon optimization — run FB4 after Phase 2 whenever `codon_optimize: true` to confirm that re-encoding did not disrupt co-translational folding.
 
 ---
 
@@ -703,6 +793,11 @@ genes: []   # leave empty to auto-discover from proteinmpnn_out/split_seqs
             # genes:
             #   - proteinmpnn_out/split_seqs/design_0_seq0.fasta
 
+# ── Codon optimization (Phase 2, before domestication) ────────────────────────
+codon_optimize:        false   # true → re-encode CDSs for expression_host
+expression_host:       e_coli  # e_coli | s_cerevisiae | h_sapiens | p_pastoris | b_subtilis
+codon_optimize_method: auto    # auto | max_frequency | dnachisel
+
 # ── Phase 3: Feedback Loop 6 (orchestrator-integrated) ──────────────────────
 fb6_min_hits:      5
 fb6_evalue_cutoff: 1.0e-5
@@ -738,6 +833,9 @@ run_fb6:       true
   "perform_domestication": true,
   "output_prefix":         "moclo_plasmid",
   "genes":                 [],
+  "codon_optimize":        false,
+  "expression_host":       "e_coli",
+  "codon_optimize_method": "auto",
   "fb6_min_hits":      5,
   "fb6_evalue_cutoff": 1e-5,
   "fb6_dry_run":       false,
@@ -857,6 +955,9 @@ output_dir: ./custom_plasmids
 | `perform_domestication` | `true` | Run CDS domestication |
 | `output_prefix` | `moclo_plasmid` | Output file stem |
 | `genes` | auto-discovered | List of CDS FASTA paths |
+| `codon_optimize` | `false` | Enable codon optimization before domestication |
+| `expression_host` | `e_coli` | Target host: `e_coli`, `s_cerevisiae`, `h_sapiens`, `p_pastoris`, `b_subtilis` |
+| `codon_optimize_method` | `auto` | `auto` \| `max_frequency` \| `dnachisel` |
 | `fb6_min_hits` | `5` | Min accessions in a partition to trigger a switch |
 | `fb6_evalue_cutoff` | `1e-5` | Max BLAST e-value to count |
 | `fb6_dry_run` | `false` | Audit only; do not re-run BRAKER |
@@ -1020,6 +1121,12 @@ output/
 **Parallelism:** All parallelizable steps use GNU `parallel` if available, falling back to sequential loops. `conda install -c conda-forge parallel` gives significant speedups on multi-core systems.
 
 **DNA Chisel:** `pip install dnachisel[reports]` substantially improves CDS domestication quality in Step 9. Without it the built-in heuristic fallback is used.
+
+**Codon optimization host selection:** Use `e_coli` for bacterial expression, `s_cerevisiae` or `p_pastoris` for yeast secretion, `h_sapiens` for CHO/HEK293 mammalian expression. When in doubt, use `auto` method — DNA Chisel will simultaneously optimise codons and remove restriction sites in a single pass if it is installed.
+
+**python-codon-tables for exotic hosts:** If your expression organism is not one of the five built-in hosts, install `pip install python-codon-tables` and set `expression_host` to the full NCBI species name (e.g. `Corynebacterium glutamicum`). The library fetches the correct Kazusa-derived codon table automatically.
+
+**Codon optimization and FB4:** Always run Feedback Loop 4 after Phase 2 when `codon_optimize: true`. FB4 re-folds the optimized sequences with ColabFold and flags any designs where synonymous changes caused a pLDDT drop, giving you an early warning before synthesis.
 
 **Detecting externally-launched runs in the GUI:** The app detects pipelines launched from the terminal. Load the output directory via Browse Results or hit ↻ on the run sidebar - the app detects the active run and begins live-refreshing automatically.
 

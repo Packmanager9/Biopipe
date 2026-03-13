@@ -24,6 +24,11 @@
   "output_prefix":         "moclo_plasmid",
   "genes": [],
 
+  "_comment_codon": "Codon optimization — applied before CDS domestication in Phase 2.",
+  "codon_optimize":        false,
+  "expression_host":       "e_coli",
+  "codon_optimize_method": "auto",
+
   "fb6_min_hits":      5,
   "fb6_evalue_cutoff": 1e-5,
   "fb6_dry_run":       false,

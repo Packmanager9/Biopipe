@@ -18,6 +18,17 @@ log() {
   echo "[$(date '+%F %T')] [$level] $*" | tee -a "$master_log"
 }
 
+# ─────────────────────────────────────────────
+# Process-group signal trap — kills ALL spawned children on INT/TERM
+# ─────────────────────────────────────────────
+_pipeline_cleanup() {
+  echo "[$(date '+%F %T')] [SIGNAL] Caught signal — killing pipeline process group (pgid $$)" >&2
+  trap '' INT TERM   # prevent re-entrancy while killing
+  kill -- -$$ 2>/dev/null
+  exit 130
+}
+trap '_pipeline_cleanup' INT TERM
+
 source "${HOME}/miniconda3/etc/profile.d/conda.sh"
 conda activate braker_env
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
@@ -381,9 +392,14 @@ RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
     awk '
         /^[[:space:]]+[0-9]+%[[:space:]]+completed,/ {
             suppressed++
+            # Extract ETA field (format: HH:MM:SS or H:MM:SS after the comma)
+            eta = $0
+            sub(/.*completed,[[:space:]]*/, "", eta)
+            sub(/[[:space:]].*/, "", eta)
             now = systime()
             if (now - last_print >= 60) {
-                printf "[REPEATMASK progress] %s  (suppressed %d duplicate line(s))\n", $0, suppressed - 1
+                printf "[REPEATMASK] Still running — latest ETA: %s  (%d line(s) since last update)\n", \
+                    eta, suppressed
                 last_print = now
                 suppressed  = 0
             }
@@ -392,7 +408,8 @@ RepeatModeler -database "$anno_prefix" -pa $num_threads 2>&1 | \
         /^[[:space:]]*$/ { next }
         {
             if (suppressed > 0) {
-                printf "[REPEATMASK progress] (suppressed %d duplicate line(s))\n", suppressed
+                printf "[REPEATMASK] Still running — latest ETA: %s  (%d line(s) suppressed)\n", \
+                    eta, suppressed
                 suppressed = 0
             }
             print

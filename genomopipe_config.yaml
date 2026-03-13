@@ -37,6 +37,22 @@ genes: []   # Leave empty to auto-discover from proteinmpnn_out/split_seqs,
             #   - proteinmpnn_out/split_seqs/design_0_seq0.fasta
             #   - proteinmpnn_out/split_seqs/design_1_seq3.fasta
 
+# ── Codon optimization (Phase 2, applied before domestication) ───────────────
+#
+# When codon_optimize is true, each CDS is re-encoded for the target expression
+# host before restriction-site domestication. Protein sequences from ProteinMPNN
+# are back-translated using the host codon table; existing DNA sequences are
+# re-encoded via synonymous substitution.
+#
+# Method priority (auto):
+#   1. DNA Chisel CodonOptimize  (pip install dnachisel[reports])
+#   2. python-codon-tables       (pip install python-codon-tables)
+#   3. Built-in frequency tables (always available, no extra install required)
+#
+codon_optimize:        false   # true → enable codon optimization
+expression_host:       e_coli  # e_coli | s_cerevisiae | h_sapiens | p_pastoris | b_subtilis
+codon_optimize_method: auto    # auto | max_frequency | dnachisel
+
 # ── Phase 3: Feedback loops ──────────────────────────────────────────────────
 # Feedback Loop 6: BLAST taxonomy → BRAKER re-run with corrected OrthoDB partition
 fb6_min_hits:      5        # Min BLAST hits from a partition to trigger a switch
